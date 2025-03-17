@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
@@ -32,8 +32,8 @@ class TestComponent1(RagnarokComponent):
         return (ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),)
 
     @classmethod
-    def execute(cls, param1: str, param2: Optional[int]) -> Tuple[str]:
-        return (param1 + str(param2),)
+    def execute(cls, param1: str, param2: Optional[int]) -> Dict[str, Any]:
+        return {"out": param1 + str(param2)}
 
 
 def test_component_validation():

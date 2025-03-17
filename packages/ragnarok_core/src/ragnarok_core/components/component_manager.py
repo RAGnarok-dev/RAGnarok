@@ -1,4 +1,4 @@
-from typing import Type, TypedDict
+from typing import Dict, Type
 
 from ragnarok_core.exceptions import DuplicateComponentError, InvalidComponentHintError
 from ragnarok_toolkit.component import RagnarokComponent
@@ -21,7 +21,7 @@ class ComponentManager:
     """
 
     def __init__(self) -> None:
-        self.components: TypedDict[str, ComponentInfo] = {}
+        self.components: Dict[str, ComponentInfo] = {}
 
     def register_component(self, component_info: ComponentInfo, *, check_duplication: bool = True) -> None:
         """register a component to manager"""

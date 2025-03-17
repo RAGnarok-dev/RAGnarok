@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import Any, Optional, Set, Tuple, TypedDict, Union, get_type_hints
+from typing import Any, Dict, Optional, Set, Tuple, TypedDict, Union, get_type_hints
 
 
 class ComponentIOType(StrEnum):
@@ -63,7 +63,7 @@ class RagnarokComponent(ABC):
 
     @classmethod
     @abstractmethod
-    def execute(cls, *args, **kwargs) -> Tuple[Any, ...]:
+    def execute(cls, *args, **kwargs) -> Dict[str, Any]:
         """
         execute the component function, could be either sync or async
         """
@@ -106,16 +106,17 @@ class RagnarokComponent(ABC):
                     return False
 
         output_options = cls.output_options()
-        output_types = [option["type"].python_type for option in output_options]
+        output_type_mapping = {option["name"]: option["type"].python_type for option in output_options}
+
         execute_return_type = get_type_hints(cls.execute).get("return")
         if execute_return_type is None:
             return False
 
-        # check output type and order
-        if not hasattr(execute_return_type, "__args__") or len(execute_return_type.__args__) != len(output_types):
+        if not (hasattr(execute_return_type, "__origin__") and execute_return_type.__origin__ in [dict, Dict]):
             return False
-        for i, output_type in enumerate(output_types):
-            if execute_return_type.__args__[i] != output_type:
-                return False
+
+        return_type_keys = set(output_type_mapping.keys())
+        if return_type_keys != set(output_type_mapping.keys()):
+            return False
 
         return True

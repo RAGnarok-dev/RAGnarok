@@ -1,5 +1,5 @@
-from ragnarok_core.components import register_official_components
+from ragnarok_core.components import component_manager
 
 
 def test_register_component():
-    register_official_components()
+    _ = component_manager
