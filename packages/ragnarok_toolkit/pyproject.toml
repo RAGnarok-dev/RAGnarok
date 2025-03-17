@@ -1,0 +1,16 @@
+[project]
+name = "ragnarok-toolkit"
+version = "0.1.0"
+description = "ragnarok-toolkit"
+readme = "README.md"
+authors = [
+    { name = "Xingkun Fan", email = "18646154381@163.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "qdrant-client>=1.13.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
