@@ -10,8 +10,8 @@ from ragnarok_core.pipeline.pipeline_node import PipelineNode
 class PipelineExecutionInfo:
     node_id: str
     type: Literal["process_info", "output_info"]
-    timestamp: datetime
-    data: Dict[str, Any] = None  # auto set by __post_init__
+    data: Dict[str, Any]
+    timestamp: datetime = None  # auto set by __post_init__
 
     def __post_init__(self):
         self.timestamp = datetime.now()
