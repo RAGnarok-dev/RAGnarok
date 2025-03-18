@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, Literal
 
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
@@ -7,8 +8,13 @@ from ragnarok_core.pipeline.pipeline_node import PipelineNode
 
 @dataclass
 class PipelineExecutionInfo:
+    node_id: str
     type: Literal["process_info", "output_info"]
-    data: Dict[str, Any]
+    timestamp: datetime
+    data: Dict[str, Any] = None  # auto set by __post_init__
+
+    def __post_init__(self):
+        self.timestamp = datetime.now()
 
 
 class PipelineEntity:
@@ -45,10 +51,12 @@ class PipelineEntity:
         # if is output node, yield output info
         # HINT!: this have to be set before putting process_info, because we use process_info to count remaining num
         if node.output_name is not None:
-            self.result_queue.put_nowait(PipelineExecutionInfo("output_info", {node.output_name: node_outputs}))
+            self.result_queue.put_nowait(
+                PipelineExecutionInfo(node.node_id, "output_info", {node.output_name: node_outputs})
+            )
 
         # return current node result
-        self.result_queue.put_nowait(PipelineExecutionInfo("process_info", node_outputs))
+        self.result_queue.put_nowait(PipelineExecutionInfo(node.node_id, "process_info", node_outputs))
 
         # trigger forward nodes
         tasks = []
@@ -65,3 +73,8 @@ class PipelineEntity:
                 tasks.append(task)
 
         await asyncio.gather(*tasks)
+
+    @classmethod
+    def from_json_str(cls, json_str: str) -> "PipelineEntity":
+        """instantiate a pipeline entity from a json format string"""
+        pass
