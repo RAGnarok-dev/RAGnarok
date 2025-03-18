@@ -23,7 +23,7 @@ class TestComponent1(RagnarokComponent):
             ),
             ComponentInputTypeOption(
                 name="component1_input_2",
-                allowed_types={ComponentIOType.INT},
+                allowed_types={ComponentIOType.INT, ComponentIOType.STRING},
                 required=False,
             ),
         )
@@ -36,7 +36,7 @@ class TestComponent1(RagnarokComponent):
         )
 
     @classmethod
-    def execute(cls, component1_input_1: str, component1_input_2: Optional[int]) -> Dict[str, Any]:
+    def execute(cls, component1_input_1: str, component1_input_2: Optional[int | str]) -> Dict[str, Any]:
         return {"component1_output_1": component1_input_1 + str(component1_input_2), "component1_output_2": 7777777}
 
 
