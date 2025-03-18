@@ -29,6 +29,6 @@ async def test_pipeline_execution():
             "3": node3,
         }
     )
-
+    print("\n\n")
     async for output in pipeline.run_async():
         print(output)
