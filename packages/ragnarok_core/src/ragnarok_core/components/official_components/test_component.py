@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, Dict, Optional, Tuple
 
 from ragnarok_toolkit.component import (
@@ -16,12 +17,12 @@ class TestComponent1(RagnarokComponent):
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="param1",
+                name="component1_input_1",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
             ),
             ComponentInputTypeOption(
-                name="param2",
+                name="component1_input_2",
                 allowed_types={ComponentIOType.INT},
                 required=False,
             ),
@@ -29,11 +30,14 @@ class TestComponent1(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),)
+        return (
+            ComponentOutputTypeOption(name="component1_output_1", type=ComponentIOType.STRING),
+            ComponentOutputTypeOption(name="component1_output_2", type=ComponentIOType.INT),
+        )
 
     @classmethod
-    def execute(cls, param1: str, param2: Optional[int]) -> Dict[str, Any]:
-        return {"param1": param1, "param2": param2}
+    def execute(cls, component1_input_1: str, component1_input_2: Optional[int]) -> Dict[str, Any]:
+        return {"component1_output_1": component1_input_1 + str(component1_input_2), "component1_output_2": 7777777}
 
 
 class TestComponent2(RagnarokComponent):
@@ -44,7 +48,7 @@ class TestComponent2(RagnarokComponent):
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="x1",
+                name="component2_input_1",
                 allowed_types={ComponentIOType.STRING},
                 required=False,
             ),
@@ -52,13 +56,14 @@ class TestComponent2(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (ComponentOutputTypeOption(name="out", type=ComponentIOType.INT),)
+        return (ComponentOutputTypeOption(name="component2_output_1", type=ComponentIOType.INT),)
 
     @classmethod
-    def execute(cls, x1: Optional[str]) -> Dict[str, int]:
-        if x1 is None:
-            return {"out": 0}
-        return {"out": len(x1)}
+    async def execute(cls, component2_input_1: Optional[str]) -> Dict[str, int]:
+        await asyncio.sleep(1)
+        if component2_input_1 is None:
+            return {"component2_output_1": 0}
+        return {"component2_output_1": len(component2_input_1)}
 
 
 class TestComponent3(RagnarokComponent):
@@ -71,8 +76,8 @@ class TestComponent3(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (ComponentOutputTypeOption(name="out_from_3", type=ComponentIOType.STRING),)
+        return (ComponentOutputTypeOption(name="component3_output_1", type=ComponentIOType.STRING),)
 
     @classmethod
     def execute(cls) -> Dict[str, str]:
-        return {"out_from_3": "this is res of component 3"}
+        return {"component3_output_1": "this is res of component 3"}

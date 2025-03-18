@@ -36,6 +36,7 @@ class PipelineEntity:
     async def run_node_async(self, node: PipelineNode) -> None:
         """run a node execution function, async version"""
 
+        # TODO error handling
         if asyncio.iscoroutinefunction(node.component.execute):
             node_outputs = await node.component.execute(**node.input_data)
         else:
@@ -54,6 +55,9 @@ class PipelineEntity:
         for connection in node.forward_node_info:
             current_output = node_outputs[connection.from_node_output_name]
             trigger_node = self.node_map[connection.to_node_id]
+            if trigger_node is None:
+                continue
+
             trigger_node.input_data[connection.to_node_input_name] = current_output
             trigger_node.waiting_num -= 1
             if trigger_node.waiting_num == 0:
