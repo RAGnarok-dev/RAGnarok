@@ -16,9 +16,3 @@ dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.mypy]
-# 开启 strict 模式
-strict = true
-# 忽略缺失的导入
-ignore_missing_imports = true
