@@ -1,28 +1,54 @@
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
-  hooks:
-  - id: check-yaml
-  - id: debug-statements
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
-- repo: https://github.com/PyCQA/isort
-  rev: 5.13.2
-  hooks:
-    - id: isort
-      args: ["--profile", "black"]
-- repo: https://github.com/psf/black
-  rev: 24.10.0
-  hooks:
-    - id: black
-      args: ['--line-length', '120']
-- repo: https://github.com/asottile/pyupgrade
-  rev: v3.19.0
-  hooks:
-    - id: pyupgrade
-      args: [--py37-plus]
-- repo: https://github.com/PyCQA/flake8
-  rev: 7.1.1
-  hooks:
-    - id: flake8
-      args: ['--max-line-length=120', '--ignore=E203,W503,E701']
+  # 基础质量检查工具集
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml          # 验证YAML文件语法
+      - id: debug-statements    # 检查Python调试语句（如pdb）
+      - id: end-of-file-fixer   # 自动添加文件末尾空行
+      - id: trailing-whitespace # 删除行尾空格
+
+  # import排序工具（需在black之前运行）
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]  # 保持与black兼容的配置
+
+  # 代码格式化工具
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: ['--line-length', '120', '--skip-string-normalization=false']  # 设置最大行宽120字符，统一字符串使用双引号 
+  
+  # Python语法升级工具
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.0
+    hooks:
+      - id: pyupgrade
+        args: [--py37-plus]  # 自动升级到Python3.7+语法
+
+  # 代码静态检查
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: [
+          '--max-line-length=120',
+          '--ignore=E203,W503,E701',
+        ]
+
+  # 类型检查
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports]
+
+  # 安全扫描
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        args: [-c, config/bandit.yml]

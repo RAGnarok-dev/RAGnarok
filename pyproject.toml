@@ -41,3 +41,9 @@ log_cli = true
 log_level = "INFO"
 log_cli_level = "INFO"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+# 开启 strict 模式
+strict = true
+# 忽略缺失的导入
+ignore_missing_imports = true
