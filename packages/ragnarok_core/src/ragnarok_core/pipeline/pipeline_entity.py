@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, Literal
+from typing import Any, AsyncGenerator, Dict, Literal, Tuple
 
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
 
@@ -18,20 +18,42 @@ class PipelineExecutionInfo:
 
 
 class PipelineEntity:
-    def __init__(self, node_map: Dict[str, PipelineNode]) -> None:
+    def __init__(self, node_map: Dict[str, PipelineNode], inject_input_mapping: Dict[str, Tuple[str, str]]) -> None:
         # store the mapping of the node_id and node entity
         self.node_map = node_map
-        # begging nodes, with no input
-        self.begin_nodes = [node for node in node_map.values() if len(node.component.input_options()) == 0]
         # store the processing result, breaking the contagiousness of multi async generator
-        self.result_queue: asyncio.Queue[PipelineExecutionInfo] = asyncio.Queue(maxsize=2 * len(self.begin_nodes))
+        self.result_queue: asyncio.Queue[PipelineExecutionInfo] = asyncio.Queue(maxsize=2 * len(self.node_map))
         # num of the unfinished node
         self.remaining_num = len(node_map)
+        # outer input inject mapping. eg: inject_name -> (node_id, node_input_name)
+        self.inject_input_mapping = inject_input_mapping
+        # beginning nodes, whose input is either empty or totally injected
+        self.begin_nodes = [
+            node
+            for node in node_map.values()
+            if len(node.component.input_options()) == 0
+            or {input_option.get("name") for input_option in node.component.input_options()}.issubset(
+                {
+                    node_input_name
+                    for node_id, node_input_name in inject_input_mapping.values()
+                    if node_id == node.node_id
+                }
+            )
+        ]
 
-    async def run_async(self) -> AsyncGenerator[PipelineExecutionInfo, None]:
+    async def run_async(self, *args, **kwargs) -> AsyncGenerator[PipelineExecutionInfo, None]:
+        """execute the pipeline, async version"""
+        # 1. inject outer input
+        for inject_name, (node_id, node_input_name) in self.inject_input_mapping.items():
+            actual_input_value = kwargs.get(inject_name)
+            # TODO check if actual_input_value is None or not correspond to node expected type
+            self.node_map[node_id].input_data[node_input_name] = actual_input_value
+
+        # 2. run beginning task
         for node in self.begin_nodes:
             asyncio.create_task(self.run_node_async(node))
 
+        # 3. collect result
         while self.remaining_num > 0:
             execution_info = await self.result_queue.get()
             if execution_info.type == "process_info":

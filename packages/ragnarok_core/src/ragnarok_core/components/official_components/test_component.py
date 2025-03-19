@@ -72,12 +72,14 @@ class TestComponent3(RagnarokComponent):
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
-        return ()
+        return (
+            ComponentInputTypeOption(name="component3_input_1", allowed_types={ComponentIOType.STRING}, required=True),
+        )
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
         return (ComponentOutputTypeOption(name="component3_output_1", type=ComponentIOType.STRING),)
 
     @classmethod
-    def execute(cls) -> Dict[str, str]:
+    def execute(cls, component3_input_1: str) -> Dict[str, str]:
         return {"component3_output_1": "this is res of component 3"}

@@ -36,8 +36,11 @@ async def test_pipeline_execution():
             "1": node1,
             "2": node2,
             "3": node3,
-        }
+        },
+        {
+            "outer_input": ("3", "component3_input_1"),
+        },
     )
     print("\n\n")
-    async for output in pipeline.run_async():
+    async for output in pipeline.run_async(outer_input="outer input"):
         print(output)

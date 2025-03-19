@@ -24,11 +24,17 @@ class PipelineNode:
         forward_node_info: Tuple[NodeConnection, ...],
         output_name: Optional[str] = None,
     ) -> None:
-        self.node_id = node_id  # each node in one pipeline has a unique id
-        self.component = component  # execution component
-        self.output_name = output_name  # key in the pipeline output dict. set None if not a output node
-        self.forward_node_info = forward_node_info  # trigger nodes
+        # each node in one pipeline has a unique id
+        self.node_id = node_id
+        # execution component
+        self.component = component
+        # key in the pipeline output dict. set None if not a output node
+        self.output_name = output_name
+        # trigger nodes
+        self.forward_node_info = forward_node_info
+        # input data, originally None
         self.input_data = {
             param: None for param in [input_option["name"] for input_option in component.input_options()]
-        }  # input data, originally None
-        self.waiting_num = len(component.input_options())  # num of the unprepared input data
+        }
+        # num of the unprepared input data
+        self.waiting_num = len(component.input_options())
