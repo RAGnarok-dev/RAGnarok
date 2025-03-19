@@ -83,40 +83,30 @@ class RagnarokComponent(ABC):
             return False
 
         # check input type
-        for option in input_options:
-            param_name = option["name"]
-            allowed_types = {io_type.python_type for io_type in option["allowed_types"]}
-            param_type = execute_params.get(param_name)
+        for input_option in input_options:
+            param_name = input_option["name"]
+            hint_type = execute_params.get(param_name)
+            allowed_types = {io_type.python_type for io_type in input_option.get("allowed_types")}
 
-            if option["required"]:
-                if param_type not in allowed_types:
+            if input_option.get("required"):
+                if hint_type not in allowed_types:
                     return False
             else:
                 # optional param
                 if (
-                    param_type is not None
-                    and hasattr(param_type, "__origin__")
-                    and (param_type.__origin__ is Optional or param_type.__origin__ is Union)
+                    hint_type is not None
+                    and hasattr(hint_type, "__origin__")
+                    and (hint_type.__origin__ is Optional or hint_type.__origin__ is Union)
                 ):
                     # extract the inner type from Optional
-                    actual_types = {arg for arg in param_type.__args__ if arg is not type(None)}
+                    actual_types = {arg for arg in hint_type.__args__ if arg is not type(None)}
                     if not actual_types.issubset(allowed_types):
                         return False
                 else:
                     return False
 
-        output_options = cls.output_options()
-        output_type_mapping = {option["name"]: option["type"].python_type for option in output_options}
-
-        execute_return_type = get_type_hints(cls.execute).get("return")
-        if execute_return_type is None:
-            return False
-
-        if not (hasattr(execute_return_type, "__origin__") and execute_return_type.__origin__ in [dict, Dict]):
-            return False
-
-        return_type_keys = set(output_type_mapping.keys())
-        if return_type_keys != set(output_type_mapping.keys()):
-            return False
-
+        # TODO is it possible to validate output value here
         return True
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
