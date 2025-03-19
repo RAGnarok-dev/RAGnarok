@@ -107,3 +107,6 @@ class RagnarokComponent(ABC):
 
         # TODO is it possible to validate output value here
         return True
+
+    def __new__(cls, *args, **kwargs):
+        raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")

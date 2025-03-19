@@ -27,7 +27,6 @@ class PipelineNode:
         self.node_id = node_id  # each node in one pipeline has a unique id
         self.component = component  # execution component
         self.output_name = output_name  # key in the pipeline output dict. set None if not a output node
-        self.is_begin = True if len(component.input_options()) == 0 else False  # beginning node
         self.forward_node_info = forward_node_info  # trigger nodes
         self.input_data = {
             param: None for param in [input_option["name"] for input_option in component.input_options()]
