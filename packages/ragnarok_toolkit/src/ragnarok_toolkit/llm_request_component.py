@@ -1,5 +1,5 @@
+import asyncio
 import json
-import time
 from typing import Any, Dict, Tuple
 
 from openai import OpenAI
@@ -44,7 +44,7 @@ class LLMRequestComponent(RagnarokComponent):
             ComponentInputTypeOption(
                 name="messages",
                 allowed_types={ComponentIOType.STRING},
-                required=False,
+                required=True,
             ),
         )
 
@@ -54,7 +54,7 @@ class LLMRequestComponent(RagnarokComponent):
         return (ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),)
 
     @classmethod
-    def execute(cls, api_key: str, base_url: str, model_name: str, messages: str) -> Dict[str, Any]:
+    async def execute(cls, api_key: str, base_url: str, model_name: str, messages: str) -> Dict[str, Any]:
         """
         execute the component function, could be either sync or async
         """
@@ -104,9 +104,9 @@ class LLMRequestComponent(RagnarokComponent):
 
             except Exception as e:
                 print(f"Retrying call {model_name}", e)
-                time.sleep(1)
+                await asyncio.sleep(1)
 
-        return {"out": response_json.get("answer", None)}
+        return {"out": response_json.get("answer")}
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
