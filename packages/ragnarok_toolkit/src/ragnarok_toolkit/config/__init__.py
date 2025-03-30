@@ -13,4 +13,6 @@ logging.basicConfig(
 
 ENV = os.environ.get("ENV", "dev")
 
+PERMISSION_CACHE_SIZE = os.environ.get("PERMISSION_CACHE_SIZE", 1000)
+
 SERVER_PORT = os.environ.get("SERVER_PORT", "8000")
