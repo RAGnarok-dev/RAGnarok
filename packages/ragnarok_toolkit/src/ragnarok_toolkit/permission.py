@@ -36,7 +36,6 @@ class PermissionManager:
                 knowledge_base_id=knowledge_base_id,
             )
 
-            # TODO downgrade to False if upper raises error
             new_perm = results[-1][1]
 
             # update cache
