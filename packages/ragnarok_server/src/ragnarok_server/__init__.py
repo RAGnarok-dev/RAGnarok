@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from ragnarok_toolkit import config
+from .permissions import init_permission_system
 
 env = config.ENV
 
@@ -11,7 +12,12 @@ app = FastAPI(
 )
 
 
-# TODO server initialization
+# Register startup event to initialize the permission system
+@app.on_event("startup")
+async def startup_event():
+    await init_permission_system()
+
+
 # TODO register permission handler
 
 
