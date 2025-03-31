@@ -17,9 +17,9 @@ class User(Base):
     is_tenant_admin = Column(Boolean, default=False)
 
     # Relationships
-    tenant = relationship("Tenant", back_populates="users")
-    tenant_admin_of = relationship("Tenant", back_populates="admin_user",
-                                   uselist=False)  # tenant where this user is admin
+    tenant = relationship("Tenant", back_populates="users", foreign_keys=[tenant_id])
+    tenant_admin_of = relationship("Tenant", back_populates="admin_user", uselist=False,
+                                   foreign_keys="Tenant.admin_user_id")    # tenant where this user is admin
     # KnowledgeBases this user has direct admin access to (if any) - optional convenience relationship:
     # owned_kbs = relationship("KnowledgeBase", back_populates="owner")
 

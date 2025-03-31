@@ -12,8 +12,8 @@ class Tenant(Base):
     admin_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
-    admin_user = relationship("User", back_populates="tenant_admin_of", uselist=False)  # one admin per tenant
-    users = relationship("User", back_populates="tenant")  # all users in this tenant
+    admin_user = relationship("User", back_populates="tenant_admin_of", foreign_keys=[admin_user_id], uselist=False)  # one admin per tenant
+    users = relationship("User", back_populates="tenant", foreign_keys="User.tenant_id")  # all users in this tenant
     knowledge_bases = relationship("KnowledgeBase", back_populates="tenant")  # all KBs under this tenant
 
     def __repr__(self):
