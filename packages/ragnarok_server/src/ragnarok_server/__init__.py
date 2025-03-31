@@ -12,6 +12,7 @@ app = FastAPI(
 
 
 # TODO server initialization
+# TODO register permission handler
 
 
 def run_server():

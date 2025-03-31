@@ -9,10 +9,12 @@ test_manager = PermissionManager()
 
 @pytest.mark.asyncio
 async def test_cache():
-    time = 0
+    time = 1
 
     async def fake_handler(sender: Any, access_token: str, knowledge_base_id: str) -> bool:
+        nonlocal time
         await asyncio.sleep(1)
+        time += 1
         return time % 2 == 0
 
     test_manager.register_permission_require_handler(fake_handler)
