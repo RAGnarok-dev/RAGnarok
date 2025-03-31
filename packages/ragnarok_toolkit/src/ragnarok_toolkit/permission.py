@@ -17,31 +17,28 @@ class PermissionManager:
         self.require_permission_signal: NamedSignal = signal("require_permission")
 
     def register_permission_require_handler(
-        self, handler: Callable[[Any, str, str], Coroutine[Any, Any, bool]]
+        self, handler: Callable[[Any, str, str, str], Coroutine[Any, Any, bool]]
     ) -> None:
         """register handler of permission requirement signal, async version"""
         self.require_permission_signal.connect(handler)
 
-    async def check_permission(self, access_token: str, knowledge_base_id: str) -> bool:
-        """check a certain permission"""
+    async def check_permission(self, access_token: str, knowledge_base_id: str, action: str) -> bool:
         try:
             # 1. check cache
-            if p := self.permission_cache.get((access_token, knowledge_base_id)):
+            if p := self.permission_cache.get((access_token, knowledge_base_id, action)):
                 return p
 
-            # 2. request for upper layer, send signal
+            # 2. send signal with the additional action parameter
             results = await self.require_permission_signal.send_async(
                 self,
                 access_token=access_token,
                 knowledge_base_id=knowledge_base_id,
+                action=action,
             )
-
             new_perm = results[-1][1]
-
             # update cache
-            self.permission_cache[(access_token, knowledge_base_id)] = new_perm
+            self.permission_cache[(access_token, knowledge_base_id, action)] = new_perm
             return new_perm
         except Exception as e:
-            # downgrade to False if error occurs
             logger.error("[check_permission] error:", e)
             return False
