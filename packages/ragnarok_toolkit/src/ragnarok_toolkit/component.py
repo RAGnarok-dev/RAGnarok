@@ -9,6 +9,7 @@ class ComponentIOType(StrEnum):
     STRING = "STRING"
     INT = "INT"
     FLOAT = "FLOAT"
+    LIST_STRING = "LIST_STRING"
 
     @property
     def python_type(self):
@@ -19,6 +20,7 @@ TYPE_MAPPING = {
     ComponentIOType.INT: int,
     ComponentIOType.FLOAT: float,
     ComponentIOType.STRING: str,
+    ComponentIOType.LIST_STRING: list[str],
 }
 
 
