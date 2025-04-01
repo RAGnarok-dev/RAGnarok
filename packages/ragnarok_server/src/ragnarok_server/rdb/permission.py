@@ -1,31 +1,35 @@
-# permission.py - Permission model (association table with extra field)
+from typing import TYPE_CHECKING
 import enum
-from sqlalchemy import Column, Integer, Enum, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Integer, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
+if TYPE_CHECKING:
+    from .knowledge_base import KnowledgeBase
+    from .user import User
 
-# Define an enumeration for permission types
 class PermissionType(str, enum.Enum):
     READ = "read"
     WRITE = "write"
     ADMIN = "admin"
-    # Additional permission levels can be added here as needed
-
 
 class Permission(Base):
     __tablename__ = "permissions"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    knowledge_base_id = Column(Integer, ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False)
-    permission_type = Column(Enum(PermissionType), nullable=False)
 
-    # Ensure one permission record per user per knowledge base (no duplicate entries)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    knowledge_base_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False
+    )
+    permission_type: Mapped[PermissionType] = mapped_column(Enum(PermissionType), nullable=False)
+
     __table_args__ = (UniqueConstraint("user_id", "knowledge_base_id", name="_user_kb_uc"),)
 
     # Relationships
-    user = relationship("User", back_populates="permissions")
-    knowledge_base = relationship("KnowledgeBase", back_populates="permissions")
+    user: Mapped["User"] = relationship("User", back_populates="permissions")
+    knowledge_base: Mapped["KnowledgeBase"] = relationship("KnowledgeBase", back_populates="permissions")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Permission user={self.user_id} kb={self.knowledge_base_id} type={self.permission_type.value}>"

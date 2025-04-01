@@ -1,11 +1,26 @@
-# base.py - Define the base class and session for SQLAlchemy models
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-# TODO: The DATABASE_URL should be stored in a .env file for security.
-DATABASE_URL = "postgresql+asyncpg://postgres:123456@172.21.166.159:5432/RAGnarok"  # PostgreSQL DSN
-Base = declarative_base()
+# base.py
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from datetime import date, datetime
+from sqlalchemy import (
+    Date,
+    DateTime,
+)
 
-# Create Async Engine and Session maker for use in the app and permission checks
+# TODO: Store the DATABASE_URL in an environment variable for security.
+DATABASE_URL = "postgresql+asyncpg://postgres:123456@172.21.166.159:5432/RAGnarok"
+
+# Create an asynchronous engine
 async_engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+
+# Create an async session factory
+AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
+
+
+class Base(DeclarativeBase):
+    """Base class for all ORM models."""
+    # Optionally define type_annotation_map if needed.
+    type_annotation_map = {
+        datetime: DateTime(),
+        date: Date,
+    }
