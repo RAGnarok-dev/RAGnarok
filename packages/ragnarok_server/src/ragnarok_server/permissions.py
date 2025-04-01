@@ -1,20 +1,22 @@
 import os
 import asyncio
 import casbin
-import jwt
-from jwt import PyJWTError
+import hashlib
 from sqlalchemy.future import select
 
+from ragnarok_server.rdb import APIKey
 from ragnarok_server.rdb.base import AsyncSessionLocal
 from ragnarok_server.rdb.user import User
 from ragnarok_server.rdb.knowledge_base import KnowledgeBase
 from ragnarok_server.rdb.permission import Permission, PermissionType
 from ragnarok_toolkit.permission import PermissionManager
 
-# --- JWT Configuration ---
-# TODO：need .env
-JWT_SECRET = "your_jwt_secret"
-JWT_ALGORITHM = "HS256"
+# --- API Key Authentication Configuration ---
+# In this implementation, we do not use JWT.
+# Instead, the client provides an API key (plaintext), and we compute its SHA-256 hash.
+# The API key record is stored in the database with only the hash value.
+# The APIKey generation process (in your CRUD endpoints) should generate a random key,
+# compute its hash, and store only the hash.
 
 # --- Casbin Model Loading ---
 # Get the current file directory and construct the absolute path for rbac_model.conf.
@@ -24,7 +26,6 @@ model_path = os.path.join(this_dir, "rbac_model.conf")
 # Initialize Casbin Enforcer with the RBAC model using the absolute path.
 enforcer = casbin.Enforcer(model_path, adapter=None)
 enforcer.clear_policy()  # Clear any existing policies.
-
 
 async def load_permissions_from_db():
     """
@@ -56,7 +57,6 @@ async def load_permissions_from_db():
             enforcer.add_policy(f"kb_{obj}_admin", obj, "write")
             enforcer.add_policy(f"kb_{obj}_admin", obj, "admin")
 
-
 async def require_permission(user: User, knowledge_base: KnowledgeBase, action: str) -> bool:
     """
     Check if the user has the required permission on the knowledge base.
@@ -69,61 +69,68 @@ async def require_permission(user: User, knowledge_base: KnowledgeBase, action: 
     obj = str(knowledge_base.id)
     return enforcer.enforce(sub, obj, action)
 
-
-# --- JWT and Database Object Conversion Functions ---
-
-async def get_user_by_token(access_token: str) -> User:
+def _hash_key(plaintext: str) -> str:
     """
-    Decode the JWT token and retrieve the corresponding User object from the database.
-    Assumes the JWT contains a "user_id" field.
-    TODO: Enhance JWT validation and error handling per project requirements.
+    Compute the SHA-256 hash of the given plaintext API key and return its hex digest.
     """
-    try:
-        payload = jwt.decode(access_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = payload.get("user_id")
-        if user_id is None:
-            raise Exception("Token payload does not contain user_id")
-    except PyJWTError as e:
-        raise Exception("Invalid JWT token") from e
+    return hashlib.sha256(plaintext.encode("utf-8")).hexdigest()
 
+async def get_user_by_apikey(api_key: str) -> User:
+    """
+    Retrieve the User object associated with the given API key.
+    The API key is provided in plaintext; we compute its hash and query the database.
+    Raises an Exception if the API key is invalid or disabled.
+    """
+    key_hash = _hash_key(api_key)
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(User).where(User.id == user_id))
+        result = await session.execute(
+            select(Permission).select_from(APIKey).where(
+                APIKey.key_hash == key_hash,
+                APIKey.enabled == True
+            )
+        )
+        # Alternatively, query directly from APIKey table:
+        result = await session.execute(
+            select(APIKey).where(APIKey.key_hash == key_hash, APIKey.enabled == True)
+        )
+        api_key_record = result.scalar_one_or_none()
+        if not api_key_record:
+            raise Exception("Invalid or disabled API key")
+        result = await session.execute(select(User).where(User.id == api_key_record.user_id))
         user = result.scalar_one_or_none()
-        if user is None:
+        if not user:
             raise Exception("User not found")
         return user
-
 
 async def get_kb_by_id(knowledge_base_id: str) -> KnowledgeBase:
     """
     Retrieve the KnowledgeBase object by its ID from the database.
     """
     async with AsyncSessionLocal() as session:
-        result = await session.execute(select(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id))
+        result = await session.execute(
+            select(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id)
+        )
         kb = result.scalar_one_or_none()
-        if kb is None:
+        if not kb:
             raise Exception("KnowledgeBase not found")
         return kb
 
-
-async def permission_check_adapter(sender, access_token: str, knowledge_base_id: str, action: str) -> bool:
+async def permission_check_adapter(sender, api_key: str, knowledge_base_id: str, action: str) -> bool:
     """
     Adapter function for PermissionManager.
-    Converts access_token and knowledge_base_id into User and KnowledgeBase objects,
+    Converts the provided API key and knowledge_base_id into User and KnowledgeBase objects,
     then checks the required permission using require_permission.
     The 'action' parameter can be "read", "write", or "admin".
     """
-    user = await get_user_by_token(access_token)
+    user = await get_user_by_apikey(api_key)
     kb = await get_kb_by_id(knowledge_base_id)
     return await require_permission(user, kb, action)
-
 
 # --- Initialize PermissionManager ---
 permission_manager = PermissionManager()
 # Register the adapter function with the expected signature:
-# (access_token: str, knowledge_base_id: str, action: str) -> bool.
+# (api_key: str, knowledge_base_id: str, action: str) -> bool.
 permission_manager.register_permission_require_handler(permission_check_adapter)
-
 
 async def init_permission_system():
     """

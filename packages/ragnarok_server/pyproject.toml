@@ -10,7 +10,12 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.11",
     "ragnarok-toolkit",
-    "ragnarok-core"
+    "ragnarok-core",
+    "sqlalchemy>=2.0.40",
+    "alembic>=1.15.2",
+    "pytest>=8.3.5",
+    "casbin>=1.41.0",
+    "asyncpg>=0.30.0",
 ]
 
 [build-system]
