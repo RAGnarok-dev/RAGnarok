@@ -1,11 +1,13 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
+
+# Import models' MetaData for autogeneration
+from ragnarok_server.rdb.models import Base
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # Alembic config object
 config = context.config
@@ -14,9 +16,6 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import models' MetaData for autogeneration
-from ragnarok_server.rdb.base import Base  # Import ORM Base
-from ragnarok_server.rdb import tenant, user, knowledge_base, permission  # noqa: F401
 
 target_metadata = Base.metadata
 
@@ -42,11 +41,7 @@ def do_run_migrations(connection: Connection) -> None:
     """
     Run migrations using the given connection.
     """
-    context.configure(
-        connection=connection,
-        target_metadata=target_metadata,
-        compare_type=True
-    )
+    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
 
     with context.begin_transaction():
         context.run_migrations()
