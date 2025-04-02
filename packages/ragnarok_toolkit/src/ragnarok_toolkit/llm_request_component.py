@@ -2,7 +2,7 @@ import asyncio
 import json
 from typing import Any, Dict, Tuple
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -58,7 +58,7 @@ class LLMRequestComponent(RagnarokComponent):
         """
         execute the component function, could be either sync or async
         """
-        client = OpenAI(api_key=api_key, base_url=base_url)
+        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         messages = [
             {
                 "role": "system",
@@ -73,7 +73,7 @@ class LLMRequestComponent(RagnarokComponent):
         ]
         while True:
             try:
-                completion = client.chat.completions.create(
+                completion = await client.chat.completions.create(
                     model=model_name,
                     messages=messages,
                     timeout=30,
