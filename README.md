@@ -16,4 +16,3 @@ uv pip install -e . && pytest
 - 工具包测试
 
 4. 确保对`.github/workflows/ci.yml`文件有写入权限
-5.
