@@ -35,8 +35,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        ~/.cargo/bin/uv pip install -r requirements.txt
-        ~/.cargo/bin/uv pip install .
+        ~/.local/bin/uv pip install -r requirements.txt
+        ~/.local/bin/uv pip install .
 
     - name: Run core tests
       working-directory: ./packages/ragnarok_core
