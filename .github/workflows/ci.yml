@@ -13,21 +13,6 @@ jobs:
       matrix:
         python-version: ["3.11"]
 
-    services:
-      qdrant:
-        image: qdrant/qdrant:latest
-        ports:
-          - 6333:6333  # Qdrant 默认端口
-        options: --health-cmd="curl --silent --fail http://localhost:6333/health"  # 健康检查
-      minio:
-        image: minio/minio:latest
-        ports:
-          - 9000:9000  # MinIO 默认端口
-        env:
-          MINIO_ACCESS_KEY: "fTdBpg4eFpmMWdojeCHO"
-          MINIO_SECRET_KEY: "LgkALYBJiQqiPTuQCfs017k7e8QEjrSPCdZLUki1"
-        options: --health-cmd="curl --silent --fail http://localhost:9000/minio/health/live"  # 健康检查
-
     steps:
     - uses: actions/checkout@v4
 
