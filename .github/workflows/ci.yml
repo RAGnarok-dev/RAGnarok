@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches:
-      - zfz_dev
+    branches: [dev_zfz]
+  pull_request:
+    branches: [master]
 
 jobs:
   build-and-test:
@@ -25,27 +26,29 @@ jobs:
       env:
         UV_VERSION: 0.2.7
 
-    - name: Restore uv cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/uv
-        key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-uv-
+    - name: Add uv to PATH
+      run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Install dependencies
+    - name: Create and activate virtualenv
       run: |
-        ~/.local/bin/uv pip install -r requirements.txt
-        ~/.local/bin/uv pip install .
-
+        uv venv .venv
+        source .venv/bin/activate
+        uv sync --dev
     - name: Run core tests
       working-directory: ./packages/ragnarok_core
-      run: ~/.local/bin/uv pip install -e . && pytest -v
-
+      run: |
+        source ../../.venv/bin/activate
+        uv pip install -e .
+        pytest -v
     - name: Run server tests
       working-directory: ./packages/ragnarok_server
-      run: ~/.local/bin/uv pip install -e . && pytest -v
-
+      run: |
+        source ../../.venv/bin/activate
+        uv pip install -e .
+        pytest -v
     - name: Run toolkit tests
       working-directory: ./packages/ragnarok_toolkit
-      run: ~/.local/bin/uv pip install -e . && pytest -v
+      run: |
+        source ../../.venv/bin/activate
+        uv pip install -e .
+        pytest -v
