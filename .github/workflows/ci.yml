@@ -38,7 +38,7 @@ jobs:
           ${{ runner.os }}-uv-
 
     - name: Sync dependencies via uv.lock
-      run: uv sync
+      run: uv sync --dev
 
     - name: Run core tests
       working-directory: ./packages/ragnarok_core
