@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build-and-test:
@@ -25,6 +25,7 @@ jobs:
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
       env:
         UV_VERSION: 0.2.7
+
     - name: Add uv to PATH
       run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
@@ -36,10 +37,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-uv-
 
-    - name: Install dependencies
-      run: |
-        uv pip install -r requirements.txt
-        uv pip install .
+    - name: Sync dependencies via uv.lock
+      run: uv sync
 
     - name: Run core tests
       working-directory: ./packages/ragnarok_core
