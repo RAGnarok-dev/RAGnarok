@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [zfz-dev]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      env:
+        UV_VERSION: 0.2.7
+
+    - name: Restore uv cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/uv
+        key: ${{ runner.os }}-uv-${{ hashFiles('**/uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-uv-
+
+    - name: Install dependencies
+      run: |
+        ~/.cargo/bin/uv pip install -r requirements.txt
+        ~/.cargo/bin/uv pip install .
+
+    - name: Run core tests
+      working-directory: ./packages/ragnarok_core
+      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+
+    - name: Run server tests
+      working-directory: ./packages/ragnarok_server
+      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+
+    - name: Run toolkit tests
+      working-directory: ./packages/ragnarok_toolkit
+      run: ~/.cargo/bin/uv pip install -e . && pytest -v
