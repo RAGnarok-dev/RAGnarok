@@ -1,5 +1,5 @@
 import requests
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List
 
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
@@ -34,7 +34,7 @@ class EmbeddingComponent(RagnarokComponent):
         )
 
     @classmethod
-    def execute(cls, sentences: list[str]) -> Dict[str, Any]:
+    def execute(cls, sentences: List[str]) -> Dict[str, Any]:
 
         data = {"inputs": sentences}
 
