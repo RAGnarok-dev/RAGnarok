@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import Any, Dict, Optional, Set, Tuple, TypedDict, Union, get_type_hints
+from typing import Any, Dict, Optional, Set, Tuple, TypedDict, Union, get_type_hints, List
 
 
 class ComponentIOType(StrEnum):
@@ -10,6 +10,7 @@ class ComponentIOType(StrEnum):
     INT = "INT"
     FLOAT = "FLOAT"
     LIST_STRING = "LIST_STRING"
+    LIST_LIST_FLOAT = "LIST_LIST_FLOAT"
 
     @property
     def python_type(self):
@@ -20,7 +21,8 @@ TYPE_MAPPING = {
     ComponentIOType.INT: int,
     ComponentIOType.FLOAT: float,
     ComponentIOType.STRING: str,
-    ComponentIOType.LIST_STRING: list[str],
+    ComponentIOType.LIST_STRING: List[str],
+    ComponentIOType.LIST_LIST_FLOAT: List[List[float]],
 }
 
 

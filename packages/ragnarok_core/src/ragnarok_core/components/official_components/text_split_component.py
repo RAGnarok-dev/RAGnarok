@@ -10,7 +10,9 @@ from ragnarok_toolkit.component import (
     RagnarokComponent,
 )
 
-class text_split_component(RagnarokComponent):
+
+
+class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
     ENABLE_HINT_CHECK: bool = True
     oaiembeds = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
@@ -23,11 +25,11 @@ class text_split_component(RagnarokComponent):
                 allowed_types={ComponentIOType.STRING},
                 required=True,
             ),
-            ComponentInputTypeOption(
-                name="similarity_threshold",
-                allowed_types={ComponentIOType.FLOAT},
-                required=False,
-            ),
+            # ComponentInputTypeOption(
+            #     name="similarity_threshold",
+            #     allowed_types={ComponentIOType.FLOAT},
+            #     required=False,
+            # ),
         )
 
     @classmethod
@@ -38,12 +40,14 @@ class text_split_component(RagnarokComponent):
 
 
     @classmethod
-    def execute(cls, pdf_path: str, similarity_threshold: Optional[float] = 0.15) -> List[str]:
+    def execute(cls, pdf_path: str) -> Dict[str, List[str]]:
         """Main execution method for processing the PDF and splitting text."""
+        similarity_threshold = 0.5
         text = cls.extract_text_from_pdf(pdf_path)
         sentences = cls.process_text(text)
         text_chunks = cls.split_by_similarity(sentences, similarity_threshold)
-        return text_chunks
+
+        return {"text_chunks": text_chunks}
 
     @staticmethod
     def extract_text_from_pdf(pdf_path: str) -> str:

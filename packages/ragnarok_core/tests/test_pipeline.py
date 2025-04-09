@@ -42,5 +42,5 @@ async def test_pipeline_execution():
         },
     )
     print("\n\n")
-    async for output in pipeline.run_async(outer_input="outer input"):
+    async for output in pipeline.run_async(outer_input="outer_input"):
         print(output)
