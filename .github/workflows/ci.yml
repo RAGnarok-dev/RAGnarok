@@ -27,7 +27,6 @@ jobs:
           MINIO_ACCESS_KEY: "fTdBpg4eFpmMWdojeCHO"
           MINIO_SECRET_KEY: "LgkALYBJiQqiPTuQCfs017k7e8QEjrSPCdZLUki1"
         options: --health-cmd="curl --silent --fail http://localhost:9000/minio/health/live"  # 健康检查
-        command: ["server", "/data"]  # MinIO启动命令，代替 entrypoint
 
     steps:
     - uses: actions/checkout@v4
