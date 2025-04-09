@@ -40,12 +40,12 @@ jobs:
 
     - name: Run core tests
       working-directory: ./packages/ragnarok_core
-      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+      run: ~/.local/bin/uv pip install -e . && pytest -v
 
     - name: Run server tests
       working-directory: ./packages/ragnarok_server
-      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+      run: ~/.local/bin/uv pip install -e . && pytest -v
 
     - name: Run toolkit tests
       working-directory: ./packages/ragnarok_toolkit
-      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+      run: ~/.local/bin/uv pip install -e . && pytest -v
