@@ -1,2 +1,0 @@
-class ApiKeyRepository:
-    pass
