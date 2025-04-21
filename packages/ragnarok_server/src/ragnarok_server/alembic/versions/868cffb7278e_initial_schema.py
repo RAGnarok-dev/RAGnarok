@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 7353c7672ce7
+Revision ID: 868cffb7278e
 Revises: 
-Create Date: 2025-04-21 16:13:46.929609
+Create Date: 2025-04-21 17:11:28.529035
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '7353c7672ce7'
+revision: str = '868cffb7278e'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,13 +31,12 @@ def upgrade() -> None:
     )
     op.create_table('permissions',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('tenant_id', sa.Integer(), nullable=False),
+    sa.Column('principal_id', sa.Integer(), nullable=False),
+    sa.Column('principal_type', sa.Enum('USER', 'TENANT', name='principaltype'), nullable=False),
     sa.Column('knowledge_base_id', sa.Integer(), nullable=False),
-    sa.Column('entity_type', sa.Integer(), nullable=False),
     sa.Column('permission_type', sa.Enum('READ', 'WRITE', 'ADMIN', name='permissiontype'), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'knowledge_base_id', name='_user_kb_uc')
+    sa.UniqueConstraint('principal_type', 'principal_id', 'knowledge_base_id', name='_principal_kb_uc')
     )
     op.create_table('tenants',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

@@ -79,31 +79,46 @@ class PermissionType(enum.Enum):
     ADMIN = "admin"
 
 
+class PrincipalType(enum.Enum):
+    USER = "user"
+    TENANT = "tenant"
+
+
 class Permission(Base):
     """
-    Permission: associates a user and tenant context with a knowledge base and grants actions.
+    Permission: grants a specific action on a knowledge base to a principal.
     Fields:
       - id: PK
-      - user_id: FK → users.id
-      - tenant_id: FK → tenants.id
+      - principal_id: FK → either users.id or tenants.id
+      - principal_type: "user" or "tenant"
       - knowledge_base_id: FK → knowledge_bases.id
-      - entity_type: int code for resource type
       - permission_type: one of "read", "write", "admin"
     """
     __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # user_id: FK → users.id
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    # tenant_id: FK → tenants.id
-    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # principal_id: FK → users.id or tenants.id, see principal_type
+    principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # principal_type: indicates whether principal_id refers to a User or a Tenant
+    principal_type: Mapped[PrincipalType] = mapped_column(
+        SQLEnum(PrincipalType, name="principaltype"), nullable=False
+    )
+
     # knowledge_base_id: FK → knowledge_bases.id
     knowledge_base_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    entity_type: Mapped[int] = mapped_column(Integer, nullable=False)
-    permission_type: Mapped[PermissionType] = mapped_column(SQLEnum(PermissionType), nullable=False)
+    # permission_type: "read", "write", or "admin"
+    permission_type: Mapped[PermissionType] = mapped_column(
+        SQLEnum(PermissionType, name="permissiontype"), nullable=False
+    )
 
     __table_args__ = (
-        UniqueConstraint("user_id", "knowledge_base_id", name="_user_kb_uc"),
+        # ensure each principal only has one record per KB
+        UniqueConstraint(
+            "principal_type",
+            "principal_id",
+            "knowledge_base_id",
+            name="_principal_kb_uc"
+        ),
     )
