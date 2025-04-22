@@ -15,7 +15,6 @@ from ragnarok_toolkit.component import (
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
     ENABLE_HINT_CHECK: bool = True
-    oaiembeds = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
@@ -57,11 +56,12 @@ class TextSplitComponent(RagnarokComponent):
 
     @classmethod
     def process_text(cls, text: str) -> List[Dict[str, Any]]:
+        oaiembeds = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         """Splits text into sentences, generates embeddings, and calculates similarity scores."""
         sentences = [{"sentence": s, "index": i} for i, s in enumerate(re.split(r'(?<=[。！？；])', text)) if s.strip()]
 
         # Generate sentence embeddings
-        embeddings = cls.oaiembeds.encode([s["sentence"] for s in sentences], convert_to_list=True)
+        embeddings = oaiembeds.encode([s["sentence"] for s in sentences], convert_to_list=True)
         for i, emb in enumerate(embeddings):
             sentences[i]["embedding"] = emb
 
