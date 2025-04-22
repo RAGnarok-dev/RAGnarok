@@ -1,21 +1,47 @@
+import asyncio
 import os
+import sys
 import signal
 import time
+import tempfile
+import subprocess
+import shutil
 import pytest
 import requests
 import json
+import pytest_asyncio
 
-# 根据你的项目结构，修改下面两行的 import 路径
 from ragnarok_core.components.official_components.custom_mcp_server_component import CustomMCPServerComponent
 from ragnarok_core.components.official_components.mcp_component import make_mcp_component
+from ragnarok_core.components.official_components.mcp_stdio_component import make_stdio_mcp_component
 
-FETCH_PORT = 3333
+CUSTOM_PORT = 3333
+OFFICIAL_PORT = 3334
+STDIO_CMD   = ["uvx", "mcp-server-fetch"] 
 
+# --- 辅助测试函数 ---
+def _run_fetch_test(base_url: str):
+    print(f"[TEST] Running fetch test with base_url: {base_url}")
+    FetchComp = make_mcp_component("fetch", base_url)
+    print("[TEST] FetchComp created, executing...")
+
+    result = FetchComp.execute(url="https://httpbin.org/get", max_length=2000)
+    print("[TEST] Execution finished. Result keys:", list(result.keys()))
+
+    content = result.get("content")
+    assert isinstance(content, str), "content 应为字符串"
+
+    data = json.loads(content)
+    print("[TEST] Parsed content JSON keys:", list(data.keys()))
+    assert "url" in data and data["url"].startswith("https://httpbin.org/get"), "应包含 url"
+    assert "headers" in data and isinstance(data["headers"], dict), "应包含 headers"
+    assert "origin" in data, "应包含 origin"
+    assert "content" in result, "MCP 返回值应包含 'content' 键"
+
+# --- 自定义内嵌服务器 Fixture ---
 @pytest.fixture(scope="module")
-def fetch_server():
-    """
-    启动一个本地的 Fetch MCP Server，用于后续测试。
-    """
+def custom_fetch_server():
+    print("[FIXTURE] Starting custom Fetch MCP server...")
     fetch_code = '''
 from fastapi import FastAPI
 import os, requests
@@ -48,54 +74,63 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "3333"))
     uvicorn.run(app, host="0.0.0.0", port=port)
-'''
+''' 
+    out = CustomMCPServerComponent.execute(
+        server_name="custom_fetch",
+        server_code=fetch_code,
+        port=CUSTOM_PORT,
+        dependencies="fastapi uvicorn requests",
+    )
+    base_url = out["base_url"]
+    pid = out["pid"]
+    temp_dir = out["temp_dir"]
+    print(f"[FIXTURE] Custom server running at {base_url}, pid={pid}")
 
-    # 启动 MCP Server
-    out = CustomMCPServerComponent.execute(server_code=fetch_code, port=FETCH_PORT)
-    base_url, pid = out["base_url"], out["pid"]
-
-    # 等待 /info 可用
     deadline = time.time() + 10
     while time.time() < deadline:
         try:
             r = requests.get(f"{base_url}/info", timeout=1)
+            print(f"[FIXTURE] /info -> {r.status_code}, {r.json()}")
             if r.status_code == 200:
                 break
-        except requests.RequestException:
+        except Exception as e:
+            print("[FIXTURE] Waiting for custom MCP server:", str(e))
             time.sleep(0.5)
     else:
-        os.kill(pid, signal.SIGTERM)
-        pytest.skip("Fetch MCP Server 未就绪")
+        CustomMCPServerComponent.stop(pid, temp_dir)
+        pytest.skip("Custom Fetch MCP Server 未就绪")
 
     yield base_url
+    print("[FIXTURE] Stopping custom MCP server")
+    CustomMCPServerComponent.stop(pid, temp_dir)
 
-    # 测试结束后停止服务器
-    os.kill(pid, signal.SIGTERM)
+# --- 官方 Fetch Server Fixture ---
+# ------------------ 新增 STDIO 测试 ------------------
+@pytest_asyncio.fixture(scope="module")
+async def official_fetch_stdio():
+    # 启动子进程并用 SDK 封装
+    transport = await stdio_client.exec(cmd=STDIO_CMD)
+    session = ClientSession(transport)
+    await session.__aenter__()         # 打开会话
+    yield session                      # <-- 这里 yield 的就是 ClientSession
+    await session.__aexit__(None, None, None)
+
+# --- 测试用例 ---
+
+def test_custom_fetch_returns_valid_json(custom_fetch_server):
+    print("[TEST CASE] Running test_custom_fetch_returns_valid_json")
+    _run_fetch_test(custom_fetch_server)
 
 
-def test_fetch_returns_valid_json(fetch_server):
-    """
-    使用 fetch 节点获取 httpbin 的 /get 接口，解析返回的 JSON 并验证字段。
-    """
-    # 将远端 Fetch MCP Server 包装为组件
-    FetchComp = make_mcp_component("fetch", fetch_server)
-
-    # 调用 httpbin.org/get，限制长度
-    result = FetchComp.execute(url="https://httpbin.org/get", max_length=2000)
-
-    # 拿到原始字符串
-    content = result.get("content")
-    assert isinstance(content, str), "content 应为字符串"
-
-    # 尝试解析 JSON
-    data = json.loads(content)
-
-    # 验证返回结构中包含 'url'、'headers' 等字段
-    assert "url" in data and data["url"].startswith("https://httpbin.org/get"), "返回 JSON 应包含 url 字段"
-    assert "headers" in data and isinstance(data["headers"], dict), "返回 JSON 应包含 headers 字段"
-    assert "origin" in data, "返回 JSON 应包含 origin 字段"
-
-    # 验证实际调用了 MCP Server
-    assert "content" in result, "MCP 返回值应包含 'content' 键"
-
-    print("Tested fetch JSON fields successfully.")
+@pytest.mark.asyncio
+async def test_official_fetch_returns_valid_json_stdio(official_fetch_stdio):
+    FetchComp = make_stdio_mcp_component(STDIO_CMD, "fetch")
+    result = await official_fetch_stdio.call_tool(
+        name="fetch",
+        arguments={"url": "https://httpbin.org/get", "max_length": 2000}
+    )
+    text = result[0].content
+    data = json.loads(text)
+    assert data["url"].startswith("https://httpbin.org/get")
+    assert isinstance(data["headers"], dict)
+    assert "origin" in data
