@@ -47,42 +47,50 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=port)
 '''
 
-    # 启动 MCP Server
+    print(f"[DEBUG] Starting CustomMCPServerComponent on port {FETCH_PORT}")
     out = CustomMCPServerComponent.execute(server_code=fetch_code, port=FETCH_PORT)
     base_url, pid = out["base_url"], out["pid"]
+    print(f"[DEBUG] Server started at {base_url}, PID={pid}")
 
     # 等待 /info 就绪（最多 10s）
     deadline = time.time() + 10
     while time.time() < deadline:
         try:
             r = requests.get(f"{base_url}/info", timeout=1)
+            print(f"[DEBUG] /info status: {r.status_code}")
             if r.status_code == 200:
+                print("[DEBUG] /info endpoint is ready")
                 break
-        except requests.exceptions.RequestException:
+        except requests.exceptions.RequestException as e:
+            print(f"[DEBUG] /info error: {e}")
             time.sleep(0.5)
     else:
+        print("[DEBUG] Server did not start in time, terminating")
         os.kill(pid, signal.SIGTERM)
         pytest.skip("Fetch MCP Server 未在 10s 内启动")
 
     yield base_url
 
-    # 测试结束后，优雅终止进程
+    print(f"[DEBUG] Stopping MCP Server (PID={pid})")
     os.kill(pid, signal.SIGTERM)
+
 
 def test_fetch_via_mcp_node(fetch_server):
     """
     将本地启动的 Fetch MCP Server 包装为节点，调用 fetch 工具并断言结果。
     """
-    # 生成 Fetch 节点类
+    print(f"[DEBUG] Wrapping fetch server at {fetch_server}")
     FetchComp = make_mcp_component("fetch", fetch_server)
 
-    # 执行调用
+    print("[DEBUG] Executing FetchComp.execute()...")
     result = FetchComp.execute(url="https://www.example.com", max_length=500)
+    print(f"[DEBUG] Raw result: {result}")
 
     # 断言返回字段和类型
     assert "content" in result, "结果应包含 'content' 字段"
     content = result["content"]
+    print(f"[DEBUG] Content snippet: {content[:100]!r}")
     assert isinstance(content, str), "content 应为字符串"
     assert len(content) > 0, "content 不应为空"
 
-    print("Fetched content length:", len(content))
+    print("[DEBUG] Fetched content length:", len(content))

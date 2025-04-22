@@ -8,37 +8,56 @@ from ragnarok_toolkit.component import (
 )
 
 def make_mcp_component(name: str, base_url: str):
-    # 1. 拉取 /info，动态生成输入输出声明
+    """
+    Dynamically generate a RagnarokComponent subclass for calling an MCP server.
+    """
     info = requests.get(f"{base_url}/info").json()
-    input_opts = [
-        ComponentInputTypeOption(
-            name=inp["name"],
-            allowed_types={ComponentIOType[inp["type"].upper()]},
-            required=inp.get("required", True),
-        )
-        for inp in info["inputs"]
-    ]
-    output_opts = [
-        ComponentOutputTypeOption(
-            name=out["name"],
-            type=ComponentIOType[out["type"].upper()]
-        )
-        for out in info["outputs"]
-    ]
+    # MCP info may list tools under 'tools' key
+    tools = info.get("tools") or []
+    # Find the tool spec matching the given name
+    tool_spec = None
+    for tool in tools:
+        if tool.get("name") == name:
+            tool_spec = tool
+            break
+    if tool_spec is None:
+        raise ValueError(f"Tool '{name}' not found in MCP server at {base_url}")
 
-    # 2. 构建 execute 调用 /invoke
-    def execute(cls, **kwargs):
+    # Build input options
+    input_opts = []
+    for inp in tool_spec.get("inputs", []):
+        io_type = ComponentIOType[inp["type"].upper()]
+        input_opts.append(
+            ComponentInputTypeOption(
+                name=inp["name"],
+                allowed_types={io_type},
+                required=inp.get("required", True),
+            )
+        )
+
+    # Build output options
+    output_opts = []
+    for out in tool_spec.get("outputs", []):
+        io_type = ComponentIOType[out["type"].upper()]
+        output_opts.append(
+            ComponentOutputTypeOption(
+                name=out["name"],
+                type=io_type,
+            )
+        )
+
+    # Define execute method to invoke the MCP server
+    def execute(cls, **kwargs) -> Dict[str, Any]:
         payload = {"tool": name, "args": kwargs}
         resp = requests.post(f"{cls.MCP_BASE_URL}/invoke", json=payload, stream=True)
-        # 如果是纯JSON返回：
         try:
             return resp.json()
         except ValueError:
-            # SSE 流式解析（示例简化，仅收集 chunk）
+            # Fallback: collect streamed chunks into a text field
             text = "".join(chunk.decode() for chunk in resp.iter_content(1024))
             return {"result": text}
 
-    # 3. 动态创建组件类
+    # Dynamically construct the component class
     attrs = {
         "DESCRIPTION": f"mcp_wrapper_{name}",
         "MCP_BASE_URL": base_url,
