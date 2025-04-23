@@ -1,3 +1,5 @@
+import socket
+
 import numpy as np
 import pytest
 from ragnarok_toolkit.vdb.qdrant_client import (
@@ -6,26 +8,40 @@ from ragnarok_toolkit.vdb.qdrant_client import (
     SearchPayloadDict,
 )
 
+
+# 尝试连本地端口，判断服务是否存在
+def is_qdrant_running():
+    try:
+        socket.create_connection(("localhost", 6333), timeout=1)
+        return True
+    except OSError:
+        return False
+
+
 qdrant_client = QdrantClient()
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_connection():
     # docker run -p 6333:6333 qdrant/qdrant:latest
     print(await qdrant_client.init_collection(name="test-collection", dim=5))
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_delete():
     await qdrant_client.delete_collection(name="test-collection")
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_get_collection():
     info = await qdrant_client.get_collection(name="test-collection")
     print(info)
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_insert_vectors():
     vectors = [np.random.rand(5).tolist() for _ in range(15)]
@@ -38,6 +54,7 @@ async def test_vdb_insert_vectors():
     )
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_search_vectors():
     vectors = [np.random.rand(5).tolist() for _ in range(10)]
@@ -53,11 +70,13 @@ async def test_vdb_search_vectors():
     print(result)  # result of pieces_id
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_delete_vectors():
     await qdrant_client.delete_vectors(name="test-collection", ids=[0, 1, 2])
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_delete_vectors_by_payload():
     await qdrant_client.delete_vectors_by_payload(
