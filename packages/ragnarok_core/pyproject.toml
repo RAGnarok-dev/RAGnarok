@@ -8,7 +8,8 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "ragnarok-toolkit"
+    "aiobotocore>=2.21.1",
+    "ragnarok-toolkit",
 ]
 
 [build-system]
