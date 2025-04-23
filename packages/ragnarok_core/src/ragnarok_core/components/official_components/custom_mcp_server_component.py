@@ -36,18 +36,19 @@ class CustomMCPServerComponent(RagnarokComponent):
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
-            ComponentInputTypeOption("server_name", {ComponentIOType.STRING}, True),
-            ComponentInputTypeOption("server_code", {ComponentIOType.STRING}, True),
-            ComponentInputTypeOption("port", {ComponentIOType.INT}, False),
-            ComponentInputTypeOption("dependencies", {ComponentIOType.STRING}, False),
+            ComponentInputTypeOption(name="server_name", allowed_types={ComponentIOType.STRING}, required=True),
+            ComponentInputTypeOption(name="server_code", allowed_types={ComponentIOType.STRING}, required=True),
+            ComponentInputTypeOption(name="port", allowed_types={ComponentIOType.INT}, required=False),
+            ComponentInputTypeOption(name="dependencies", allowed_types={ComponentIOType.STRING}, required=False),
         )
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
         return (
-            ComponentOutputTypeOption("base_url", ComponentIOType.STRING),
-            ComponentOutputTypeOption("pid", ComponentIOType.INT),
-            ComponentOutputTypeOption("temp_dir", ComponentIOType.STRING),
+            ComponentOutputTypeOption(name="base_url", type=ComponentIOType.STRING),
+            ComponentOutputTypeOption(name="pid", type=ComponentIOType.INT),
+            ComponentOutputTypeOption(name="temp_dir", type=ComponentIOType.STRING),
+            ComponentOutputTypeOption(name="cmd",        type=ComponentIOType.LIST_STRING),
         )
 
     @classmethod
@@ -84,10 +85,10 @@ class CustomMCPServerComponent(RagnarokComponent):
         script_path = os.path.join(temp_dir, "server.py")
         with open(script_path, "w", encoding="utf-8") as f:
             f.write(server_code)
-
+        cmd = [python_exec, script_path]
         # Launch server as subprocess
         proc = subprocess.Popen(
-            [python_exec, script_path],
+            cmd,
             cwd=temp_dir,
             env=env,
             # stdout=subprocess.STDOUT,
@@ -105,7 +106,13 @@ class CustomMCPServerComponent(RagnarokComponent):
             raise RuntimeError(f"Server failed to start. stdout:\n{out}\nstderr:\n{err}")
 
         base_url = f"http://127.0.0.1:{port}"
-        return {"base_url": base_url, "pid": pid, "temp_dir": temp_dir}
+        
+        return {
+            "base_url": base_url,
+            "pid":      proc.pid,
+            "temp_dir": temp_dir,
+            "cmd":      cmd,
+        }
 
     @classmethod
     def stop(cls, pid: Optional[int], temp_dir: str) -> None:
