@@ -51,6 +51,7 @@ class PipelineEntity:
             self.node_map[node_id].input_data[node_input_name] = actual_input_value
 
         # 2. run beginning task
+        # TODO if begin_nodes is empty, please raise error
         for node in self.begin_nodes:
             asyncio.create_task(self.run_node_async(node))
 

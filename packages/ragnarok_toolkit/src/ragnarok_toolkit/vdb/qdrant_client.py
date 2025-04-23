@@ -1,4 +1,4 @@
-from typing import Literal, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 from qdrant_client import AsyncQdrantClient, models
 from qdrant_client.models import Distance, PayloadSchemaType
@@ -17,7 +17,7 @@ class SearchPayloadDict(TypedDict, total=False):
 
 class QdrantPoint(TypedDict):
     id: int
-    vector: list[float]
+    vector: List[float]
     payload: PayloadDict
 
 
@@ -102,12 +102,12 @@ class QdrantClient:
         await cls.qdrant_client.delete_collection(collection_name=name)
 
     @classmethod
-    async def create_pyload_indexes(cls, name: str, payload_indexes: list[PayloadIndex]) -> None:
+    async def create_pyload_indexes(cls, name: str, payload_indexes: List[PayloadIndex]) -> None:
         """
         Create a payload index
         Args:
             name: name of the collection
-            payload_indexes (list[PayloadIndex]) : List of payload indexes to create
+            payload_indexes (List[PayloadIndex]) : List of payload indexes to create
         Returns:
             None
         """
@@ -119,12 +119,12 @@ class QdrantClient:
             )
 
     @classmethod
-    async def insert_vectors(cls, name: str, points: list[QdrantPoint]) -> None:
+    async def insert_vectors(cls, name: str, points: List[QdrantPoint]) -> None:
         """
         Insert vectors into the collection
         Args:
             name: name of the collection
-            points (list[VdbPoint]): Vectors to insert
+            points (List[VdbPoint]): Vectors to insert
         Returns:
             None
         """
@@ -144,19 +144,19 @@ class QdrantClient:
     async def search_vectors(
         cls,
         name: str,
-        query_vector: list[float],
+        query_vector: List[float],
         top_k: int = 10,
-        payload_filters: Optional[list[SearchPayloadDict]] = None,
+        payload_filters: Optional[List[SearchPayloadDict]] = None,
     ):
         """
         Search for vectors in the collection
         Args:
             name: name of the collection
-            query_vector (list[float]): Query vector
+            query_vector (List[float]): Query vector
             top_k (int): Number of results to return
-            payload_filters (list[dict]): Payload to filter
+            payload_filters (List[dict]): Payload to filter
         Returns:
-            list[str]: List of piece_id that results belong to
+            List[str]: List of piece_id that results belong to
         """
         search_result = await cls.qdrant_client.query_points(
             collection_name=name,
@@ -181,7 +181,7 @@ class QdrantClient:
         return piece_ids
 
     @classmethod
-    async def delete_vectors(cls, name: str, ids: list[int]) -> None:
+    async def delete_vectors(cls, name: str, ids: List[int]) -> None:
         """
         Delete a vector from the collection
         Args:
@@ -193,12 +193,12 @@ class QdrantClient:
         await cls.qdrant_client.delete(collection_name=name, points_selector=ids)
 
     @classmethod
-    async def delete_vectors_by_payload(cls, name: str, payload_filters: list[SearchPayloadDict]) -> None:
+    async def delete_vectors_by_payload(cls, name: str, payload_filters: List[SearchPayloadDict]) -> None:
         """
         Delete vectors from the collection by payload with AND logic
         Args:
             name: name of the collection
-            payload_filters (list[dict]): Payload to delete
+            payload_filters (List[dict]): Payload to delete
         Returns:
             None
         Example:

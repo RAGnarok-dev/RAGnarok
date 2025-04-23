@@ -1,14 +1,33 @@
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import Any, Dict, Optional, Set, Tuple, TypedDict, Union, get_type_hints
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypedDict,
+    Union,
+    get_type_hints,
+)
+
+from ragnarok_toolkit.vdb.qdrant_client import QdrantPoint, SearchPayloadDict
 
 
 class ComponentIOType(StrEnum):
     """the supported input and output types for a component"""
 
     STRING = "STRING"
+    STRING_LIST = "STRING_LIST"
     INT = "INT"
     FLOAT = "FLOAT"
+    FLOAT_LIST = "FLOAT_LIST"
+    BYTES = "BYTES"
+    VEC_POINT = "VEC_POINT"
+    VEC_POINT_LIST = "VEC_POINT_LIST"
+    SEARCH_PAYLOAD_DICT = "SEARCH_PAYLOAD_DICT"
+    SEARCH_PAYLOAD_DICT_LIST = "SEARCH_PAYLOAD_DICT_LIST"
 
     @property
     def python_type(self):
@@ -19,6 +38,12 @@ TYPE_MAPPING = {
     ComponentIOType.INT: int,
     ComponentIOType.FLOAT: float,
     ComponentIOType.STRING: str,
+    ComponentIOType.BYTES: bytes,
+    ComponentIOType.FLOAT_LIST: List[float],
+    ComponentIOType.VEC_POINT: QdrantPoint,
+    ComponentIOType.VEC_POINT_LIST: List[QdrantPoint],
+    ComponentIOType.SEARCH_PAYLOAD_DICT: SearchPayloadDict,
+    ComponentIOType.SEARCH_PAYLOAD_DICT_LIST: List[SearchPayloadDict],
 }
 
 
