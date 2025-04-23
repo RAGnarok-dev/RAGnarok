@@ -1,3 +1,5 @@
+import socket
+
 import pytest
 from ragnarok_core.components.official_components.store_odb import StoreODB
 from ragnarok_core.components.official_components.vector_database_component import (
@@ -10,6 +12,24 @@ from ragnarok_core.pipeline.pipeline_node import PipelineNode
 from ragnarok_core.vector_database import qdrant_client
 
 
+# 尝试连本地端口，判断服务是否存在
+def is_qdrant_running():
+    try:
+        socket.create_connection(("localhost", 6333), timeout=1)
+        return True
+    except OSError:
+        return False
+
+
+def is_minio_running():
+    try:
+        socket.create_connection(("localhost", 9000), timeout=1)
+        return True
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_store_vdb():
     try:
@@ -46,6 +66,7 @@ async def test_store_vdb():
         print(output)
 
 
+@pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")
 @pytest.mark.asyncio
 async def test_vdb_retrieval():
     node1 = PipelineNode(node_id="1", component=RetrieveComponent, forward_node_info=())
@@ -75,6 +96,7 @@ async def test_vdb_retrieval():
         print(output)
 
 
+@pytest.mark.skipif(not is_minio_running(), reason="Minio service not running on localhost:9000")
 @pytest.mark.asyncio
 async def test_store_odb():
     await minio_client.create_bucket("test-odb")
