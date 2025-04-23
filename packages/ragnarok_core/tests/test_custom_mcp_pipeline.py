@@ -113,8 +113,7 @@ async def test_weather_forecast_pipeline():
         server_name="weather_test",
         server_code=WEATHER_SERVER_CODE,
         dependencies="httpx mcp[cli] fastmcp",
-        latitude=0.0, 
-        longitude=0.0,  
-        port=3333,
+        latitude=40.7128, 
+        longitude=-74.006,  
     ):
         print(out)

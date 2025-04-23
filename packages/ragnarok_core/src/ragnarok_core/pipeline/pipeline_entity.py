@@ -31,8 +31,12 @@ class PipelineEntity:
         self.begin_nodes = [
             node
             for node in node_map.values()
-            if len(node.component.input_options()) == 0
-            or {input_option.get("name") for input_option in node.component.input_options()}.issubset(
+            if len(node.component.input_options()) == 0                      # 完全无输入
+            or {
+                opt.get("name")
+                for opt in node.component.input_options()
+                if opt.get("required", False)                                # ★ 仅看 required=True
+            }.issubset(
                 {
                     node_input_name
                     for node_id, node_input_name in inject_input_mapping.values()

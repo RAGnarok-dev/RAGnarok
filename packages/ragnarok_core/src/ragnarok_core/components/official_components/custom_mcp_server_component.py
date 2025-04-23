@@ -62,6 +62,7 @@ class CustomMCPServerComponent(RagnarokComponent):
         # Prepare temporary workspace
         temp_dir = tempfile.mkdtemp(prefix=f"mcp_{server_name}_")
         env = os.environ.copy()
+        port = port or 3333
         env["PORT"] = str(port)
 
         # Create virtual environment
@@ -104,12 +105,12 @@ class CustomMCPServerComponent(RagnarokComponent):
         if proc.poll() is not None:
             out, err = proc.communicate()
             raise RuntimeError(f"Server failed to start. stdout:\n{out}\nstderr:\n{err}")
-
+        # base_url暂时不用
         base_url = f"http://127.0.0.1:{port}"
         
         return {
             "base_url": base_url,
-            "pid":      proc.pid,
+            "pid":      pid,
             "temp_dir": temp_dir,
             "cmd":      cmd,
         }
