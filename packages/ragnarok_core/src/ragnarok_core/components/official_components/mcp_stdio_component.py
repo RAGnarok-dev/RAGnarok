@@ -27,7 +27,7 @@ _wrapper_cache: Dict[str, type] = {}                        # tool_name -> wrapp
 _session_cache: Dict[Tuple[str, ...], ClientSession] = {}   # cmd tuple -> ClientSession
 _tool_cache:    Dict[Tuple[str, ...], Tool] = {}            # cmd tuple -> Tool
 _cm_cache:      Dict[Tuple[str, ...], AsyncContextManager] = {}  # cmd tuple -> stdio cm
-
+_entered_task:  Dict[Tuple[str, ...], asyncio.Task] = {}         # cmd tuple -> task entered
 # -------------------------------------------------- stream wrappers -----------------------------------------
 class _LoggingWriteStream:
     def __init__(self, ws): self._ws = ws
@@ -62,38 +62,6 @@ def make_stdio_mcp_component(tool_name: str) -> type:
         DESCRIPTION = f"mcp_stdio_dyn_{tool_name}"
         ENABLE_HINT_CHECK = False
         _lock: asyncio.Lock = asyncio.Lock()                 # 保护初始化
-
-        # -------- helpers --------
-        @classmethod
-        async def _get_session_tool(cls, cmd: List[str]) -> Tuple[ClientSession, Tool]:
-            key = tuple(cmd)
-            if key in _session_cache:
-                return _session_cache[key], _tool_cache[key]
-
-            async with cls._lock:
-                if key in _session_cache:
-                    return _session_cache[key], _tool_cache[key]
-
-                # ① 进入 stdio_client ctx，但不退出
-                cm = stdio_client(StdioServerParameters(command=cmd[0], args=cmd[1:]))
-                rs, ws = await cm.__aenter__()
-
-                # ② 建立会话并初始化
-                sess = ClientSession(rs, ws)
-                await sess.__aenter__(); await sess.initialize()
-
-                # ③ 查找 tool
-                tools = (await sess.list_tools()).tools
-                tool = next((t for t in tools if t.name == tool_name), None)
-                if tool is None:
-                    await cm.__aexit__(None, None, None)
-                    raise RuntimeError(f"Tool '{tool_name}' not found in server {cmd}")
-
-                # ④ 缓存
-                _session_cache[key] = sess
-                _tool_cache[key]    = tool
-                _cm_cache[key]      = cm
-                return sess, tool
 
         # -------- component I/O schema --------
         @classmethod
@@ -130,48 +98,103 @@ def make_stdio_mcp_component(tool_name: str) -> type:
                 raise ValueError("missing required input 'cmd'")
             cmd: List[str] = kwargs.pop("cmd")
 
-            sess, _ = await cls._get_session_tool(cmd)
-            logger.debug("CALL_TOOL %s via %s args=%s", tool_name, cmd, kwargs)
-            res = await sess.call_tool(name=tool_name, arguments=kwargs)
+            async with SessionContextManager(cmd, tool_name) as (sess, tool):
+                logger.debug("CALL_TOOL %s via %s args=%s", tool_name, cmd, kwargs)
+                res = await sess.call_tool(name=tool_name, arguments=kwargs)
 
-            items = getattr(res, "content", res)
-            if not items:
-                return {}
-            first = items[0]
+                items = getattr(res, "content", res)
+                if not items:
+                    return {}
+                first = items[0]
 
-            if hasattr(first, "model_dump"):
-                return first.model_dump()
-            if hasattr(first, "dict"):
-                return first.dict()
-            if isinstance(first, str):
-                return {"text": first}
-            return {"raw": first}
+                if hasattr(first, "model_dump"):
+                    return first.model_dump()
+                if hasattr(first, "dict"):
+                    return first.dict()
+                if isinstance(first, str):
+                    return {"text": first}
+                return {"raw": first}
 
     _wrapper_cache[tool_name] = _StdioMCPWrapper
     return _StdioMCPWrapper
 
-# -------------------------------------------------- graceful shutdown ----------------------------------------
-async def _shutdown_all_stdio_sessions() -> None:
-    # 1. 关闭 ClientSession
-    for key, sess in list(_session_cache.items()):
-        try:
-            if hasattr(sess, "aclose"):                       # 新版接口
-                await sess.aclose()
-            else:                                             # 老版 fallback
-                await sess.__aexit__(None, None, None)
-        except Exception:
-            logger.exception("Error closing session %s", key)
 
-    # 2. 退出 stdio_client 的 async-context-manager
-    for key, cm in list(_cm_cache.items()):
-        try:
-            await cm.__aexit__(None, None, None)
-        except Exception:
-            logger.exception("Error closing cm %s", key)
+class SessionContextManager:
+    """
+    封装 stdio_client 和 ClientSession 的上下文，确保创建与关闭在同一 Task 中。
+    用法：
+        async with SessionContextManager(cmd, tool_name) as (sess, tool):
+            await sess.call_tool(...)
+    """
 
-    # 3. 清空缓存，防止再次回收时重复关闭
-    _session_cache.clear()
-    _tool_cache.clear()
-    _cm_cache.clear()
+    def __init__(self, cmd: List[str], tool_name: str):
+        self.cmd = tuple(cmd)
+        self.tool_name = tool_name
+        self.session: ClientSession | None = None
+        self.tool: Tool | None = None
+        self.cm: AsyncContextManager | None = None
+        self.task: asyncio.Task | None = None
 
-# atexit.register(lambda: anyio.run(_shutdown_all_stdio_sessions))
+    async def __aenter__(self) -> Tuple[ClientSession, Tool]:
+        if self.cmd in _session_cache:
+            self.session = _session_cache[self.cmd]
+            self.tool = _tool_cache[self.cmd]
+            return self.session, self.tool
+
+        self.cm = stdio_client(StdioServerParameters(command=self.cmd[0], args=self.cmd[1:]))
+        rs, ws = await self.cm.__aenter__()
+
+        self.session = ClientSession(rs, ws)
+        await self.session.__aenter__()
+        await self.session.initialize()
+
+        tools = (await self.session.list_tools()).tools
+        self.tool = next((t for t in tools if t.name == self.tool_name), None)
+        if not self.tool:
+            await self.session.__aexit__(None, None, None)
+            await self.cm.__aexit__(None, None, None)
+            raise RuntimeError(f"Tool '{self.tool_name}' not found in server {self.cmd}")
+
+        # 缓存 + 记录 Task
+        _session_cache[self.cmd] = self.session
+        _tool_cache[self.cmd] = self.tool
+        _cm_cache[self.cmd] = self.cm
+        _entered_task[self.cmd] = asyncio.current_task()
+
+        return self.session, self.tool
+
+    async def __aexit__(self, exc_type, exc_val, traceback):
+        task = _entered_task.get(self.cmd)
+        if task and task != asyncio.current_task():
+            logger.warning("Skipping cleanup for %s: current task != entered task", self.cmd)
+            return
+
+        if self.session:
+            try:
+                await self.session.__aexit__(exc_type, exc_val, traceback)
+            except Exception:
+                logger.exception("Error closing session %s", self.cmd)
+
+        if self.cm:
+            try:
+                await self.cm.__aexit__(exc_type, exc_val, traceback)
+            except Exception:
+                logger.exception("Error closing cm %s", self.cmd)
+
+        # 清理缓存
+        _session_cache.pop(self.cmd, None)
+        _tool_cache.pop(self.cmd, None)
+        _cm_cache.pop(self.cmd, None)
+        _entered_task.pop(self.cmd, None)
+
+    @classmethod
+    def get_cached(cls, cmd: List[str], tool_name: str) -> Tuple[ClientSession, Tool] | None:
+        key = tuple(cmd)
+        # 必须是同一个 Task 创建的 session，才可以复用
+        if (
+            key in _session_cache
+            and key in _tool_cache
+            and _entered_task.get(key) == asyncio.current_task()
+        ):
+            return _session_cache[key], _tool_cache[key]
+        return None

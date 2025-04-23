@@ -77,11 +77,18 @@ async def test_weather_forecast_pipeline():
         to_node_input_name="cmd",
     )
 
+    conn_cmd_alerts = PipelineNode.NodeConnection(
+        from_node_id="server",
+        to_node_id="alerts",
+        from_node_output_name="cmd",
+        to_node_input_name="cmd",
+    )
+
     # Node A：启动 MCP server，并把 conn_cmd 挂到 forward_node_info
     node_server = PipelineNode(
         node_id="server",
         component=CustomMCPServerComponent,
-        forward_node_info=(conn_cmd,),  
+        forward_node_info=(conn_cmd,conn_cmd_alerts),  
         output_name="server_res"
     )
 
@@ -94,19 +101,30 @@ async def test_weather_forecast_pipeline():
         output_name="forecast_res",
     )
 
+    AlertsComp = make_stdio_mcp_component("get_alerts")
+    node_alerts = PipelineNode(
+        node_id="alerts",
+        component=AlertsComp,
+        forward_node_info=(),
+        output_name="alerts_res",
+    )
+
+    # ---------------------------- Pipeline ----------------------------
     pipeline = PipelineEntity(
         {
             "server":   node_server,
             "forecast": node_forecast,
+            "alerts":   node_alerts,
         },
         {
             "server_name": ("server", "server_name"),
             "server_code": ("server", "server_code"),
             "dependencies": ("server", "dependencies"),
-            "latitude":   ("forecast", "latitude"),
-            "longitude":  ("forecast", "longitude"),
-            "port":      ("server", "port"),
-        },              
+            "port":        ("server", "port"),
+            "latitude":    ("forecast", "latitude"),
+            "longitude":   ("forecast", "longitude"),
+            "state":       ("alerts", "state"),
+        },
     )
 
     async for out in pipeline.run_async(
@@ -115,5 +133,6 @@ async def test_weather_forecast_pipeline():
         dependencies="httpx mcp[cli] fastmcp",
         latitude=40.7128, 
         longitude=-74.006,  
+        state="NY",  # New York state
     ):
         print(out)
