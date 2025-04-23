@@ -51,4 +51,7 @@ jobs:
 
     - name: Run toolkit tests
       working-directory: ./packages/ragnarok_toolkit
-      run: ~/.cargo/bin/uv pip install -e . && pytest -v
+      run: |
+        source ../../.venv/bin/activate
+        uv pip install -e .
+        pytest -v
