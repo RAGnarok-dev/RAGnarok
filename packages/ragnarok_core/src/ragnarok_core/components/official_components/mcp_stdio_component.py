@@ -28,6 +28,7 @@ _session_cache: Dict[Tuple[str, ...], ClientSession] = {}   # cmd tuple -> Clien
 _tool_cache:    Dict[Tuple[str, ...], Tool] = {}            # cmd tuple -> Tool
 _cm_cache:      Dict[Tuple[str, ...], AsyncContextManager] = {}  # cmd tuple -> stdio cm
 _entered_task:  Dict[Tuple[str, ...], asyncio.Task] = {}         # cmd tuple -> task entered
+_owns_session_map: Dict[Tuple[str, ...], bool] = {}  # cmd -> True if this task owns it
 # -------------------------------------------------- stream wrappers -----------------------------------------
 class _LoggingWriteStream:
     def __init__(self, ws): self._ws = ws
@@ -73,6 +74,8 @@ def make_stdio_mcp_component(tool_name: str) -> type:
                     required=True,
                 )
             ]
+            # todo:这里需要调整
+            # ⚠️ 注意：这里只是选取一个 tool 样本来构造 schema，实际执行时仍由 execute 阶段动态决定 tool
             if _tool_cache:
                 any_tool = next(iter(_tool_cache.values()))
                 base.extend(
@@ -134,11 +137,13 @@ class SessionContextManager:
         self.tool: Tool | None = None
         self.cm: AsyncContextManager | None = None
         self.task: asyncio.Task | None = None
+        self.key = (self.cmd, self.tool_name)
 
     async def __aenter__(self) -> Tuple[ClientSession, Tool]:
-        if self.cmd in _session_cache:
-            self.session = _session_cache[self.cmd]
-            self.tool = _tool_cache[self.cmd]
+        if self.key in _session_cache:
+            self.session = _session_cache[self.key]
+            self.tool = _tool_cache[self.key]
+            _owns_session_map[self.key] = False  
             return self.session, self.tool
 
         self.cm = stdio_client(StdioServerParameters(command=self.cmd[0], args=self.cmd[1:]))
@@ -155,18 +160,22 @@ class SessionContextManager:
             await self.cm.__aexit__(None, None, None)
             raise RuntimeError(f"Tool '{self.tool_name}' not found in server {self.cmd}")
 
-        # 缓存 + 记录 Task
-        _session_cache[self.cmd] = self.session
-        _tool_cache[self.cmd] = self.tool
-        _cm_cache[self.cmd] = self.cm
-        _entered_task[self.cmd] = asyncio.current_task()
+        _session_cache[self.key] = self.session
+        _tool_cache[self.key] = self.tool
+        _cm_cache[self.key] = self.cm
+        _entered_task[self.key] = asyncio.current_task()
+        _owns_session_map[self.key] = True  # ✅ 本次 Task 拥有控制权
 
         return self.session, self.tool
 
     async def __aexit__(self, exc_type, exc_val, traceback):
-        task = _entered_task.get(self.cmd)
-        if task and task != asyncio.current_task():
-            logger.warning("Skipping cleanup for %s: current task != entered task", self.cmd)
+        # ✅ 只有 owner 才能释放
+        if not _owns_session_map.get(self.key, False):
+            logger.debug("Skip exit for %s: not the session owner", self.key)
+            return
+
+        if _entered_task.get(self.key) != asyncio.current_task():
+            logger.warning("Skip exit for %s: not in same task", self.key)
             return
 
         if self.session:
@@ -179,17 +188,18 @@ class SessionContextManager:
             try:
                 await self.cm.__aexit__(exc_type, exc_val, traceback)
             except Exception:
-                logger.exception("Error closing cm %s", self.cmd)
+                logger.exception("Error closing cm %s", self.key)
 
-        # 清理缓存
-        _session_cache.pop(self.cmd, None)
-        _tool_cache.pop(self.cmd, None)
-        _cm_cache.pop(self.cmd, None)
-        _entered_task.pop(self.cmd, None)
+        # ✅ 清除所有相关状态
+        _session_cache.pop(self.key, None)
+        _tool_cache.pop(self.key, None)
+        _cm_cache.pop(self.key, None)
+        _entered_task.pop(self.key, None)
+        _owns_session_map.pop(self.key, None)
 
     @classmethod
     def get_cached(cls, cmd: List[str], tool_name: str) -> Tuple[ClientSession, Tool] | None:
-        key = tuple(cmd)
+        key = (tuple(cmd), tool_name)
         # 必须是同一个 Task 创建的 session，才可以复用
         if (
             key in _session_cache
