@@ -10,8 +10,7 @@ app = FastAPI(
     docs_url="/api-docs" if env == "dev" else None,
 )
 
-
-# TODO server initialization
+# TODO register permission handler
 
 
 def run_server():
