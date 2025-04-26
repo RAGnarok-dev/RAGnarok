@@ -77,6 +77,13 @@ async def test_weather_forecast_pipeline():
         to_node_input_name="cmd",
     )
 
+    conn_cmd1 = PipelineNode.NodeConnection(
+        from_node_id="server",
+        to_node_id="forecast1",
+        from_node_output_name="cmd",
+        to_node_input_name="cmd",
+    )
+
     conn_cmd_alerts = PipelineNode.NodeConnection(
         from_node_id="server",
         to_node_id="alerts",
@@ -88,7 +95,7 @@ async def test_weather_forecast_pipeline():
     node_server = PipelineNode(
         node_id="server",
         component=CustomMCPServerComponent,
-        forward_node_info=(conn_cmd,conn_cmd_alerts),  
+        forward_node_info=(conn_cmd,conn_cmd_alerts,conn_cmd1),  
         output_name="server_res"
     )
 
@@ -101,13 +108,13 @@ async def test_weather_forecast_pipeline():
         output_name="forecast_res",
     )
 
-    # ForecastComp1 = make_stdio_mcp_component("get_forecast")
-    # node_forecast1 = PipelineNode(
-    #     node_id="forecast1",
-    #     component=ForecastComp1,
-    #     forward_node_info=(),
-    #     output_name="forecast_res",
-    # )
+    ForecastComp1 = make_stdio_mcp_component("get_forecast")
+    node_forecast1 = PipelineNode(
+        node_id="forecast1",
+        component=ForecastComp1,
+        forward_node_info=(),
+        output_name="forecast_res",
+    )
 
     AlertsComp = make_stdio_mcp_component("get_alerts")
     node_alerts = PipelineNode(
@@ -123,7 +130,7 @@ async def test_weather_forecast_pipeline():
             "server":   node_server,
             "forecast": node_forecast,
             "alerts":   node_alerts,
-            # "forecast1": node_forecast1,
+            "forecast1": node_forecast1,
         },
         {
             "server_name": ("server", "server_name"),
@@ -133,8 +140,8 @@ async def test_weather_forecast_pipeline():
             "latitude":    ("forecast", "latitude"),
             "longitude":   ("forecast", "longitude"),
             "state":       ("alerts", "state"),
-            # "latitude1":  ("forecast1", "latitude"),
-            # "longitude1": ("forecast1", "longitude"),
+            "latitude1":  ("forecast1", "latitude"),
+            "longitude1": ("forecast1", "longitude"),
         },
     )
 
@@ -145,7 +152,7 @@ async def test_weather_forecast_pipeline():
         latitude=40.7128, 
         longitude=-74.006,  
         state="NY",  # New York state
-        # latitude1=0,
-        # longitude1=0,
+        latitude1=0,
+        longitude1=0,
     ):
         print(out)
