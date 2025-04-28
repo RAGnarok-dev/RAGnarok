@@ -1,4 +1,5 @@
 import re
+import os
 import numpy as np
 import pdfplumber
 from sentence_transformers import SentenceTransformer
@@ -10,7 +11,8 @@ from ragnarok_toolkit.component import (
     RagnarokComponent,
 )
 
-
+class UnsupportedFileTypeError(Exception):
+    """When the file type is not in the supported list, this exception is thrown."""
 
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
@@ -49,6 +51,9 @@ class TextSplitComponent(RagnarokComponent):
 
         return {"text_chunks": text_chunks}
 
+    class UnsupportedFileTypeError(Exception):
+        """When the file type is not in the supported list, this exception is thrown."""
+        
     @staticmethod
     def extract_text_from_pdf(pdf_path: str) -> str:
         """Extracts text from a PDF file."""
@@ -91,5 +96,20 @@ class TextSplitComponent(RagnarokComponent):
             chunks.append("".join(current_chunk))
 
         return chunks
+    
+    """Identifying file types through file suffixes"""
+    @staticmethod
+    def get_file_type(file_path : str) -> str:
+        _, ext = os.path.splitext(file_path)
+        ext = ext.lower()
+        if ext == '.md':
+            return "markdown"
+        elif ext == '.pdf':
+            return "pdf"
+        elif ext == '.doc' or ext == '.docx':
+            return "word"
+        else :
+            raise UnsupportedFileTypeError(f"Unsupported file type: {ext}")
+    
 
 
