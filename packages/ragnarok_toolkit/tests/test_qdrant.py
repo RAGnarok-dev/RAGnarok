@@ -48,7 +48,7 @@ async def test_vdb_insert_vectors():
     await qdrant_client.insert_vectors(
         name="test-collection",
         points=[
-            QdrantPoint(id=idx, vector=vector, payload={"db_id": "1", "doc_id": str(idx // 5), "piece_id": str(idx)})
+            QdrantPoint(id=idx, vector=vector, payload={"db_id": "1", "doc_id": str(idx // 5), "chunk_id": str(idx)})
             for idx, vector in enumerate(vectors)
         ],
     )

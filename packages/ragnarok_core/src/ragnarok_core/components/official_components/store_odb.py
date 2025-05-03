@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from ragnarok_core.object_database import minio_client
 from ragnarok_toolkit.component import (
@@ -22,13 +22,13 @@ class StoreODB(RagnarokComponent):
                 required=True,
             ),
             ComponentInputTypeOption(
-                name="object_key",
-                allowed_types={ComponentIOType.STRING},
+                name="chunk_ids",
+                allowed_types={ComponentIOType.STRING_LIST},
                 required=True,
             ),
             ComponentInputTypeOption(
-                name="content_bytes",
-                allowed_types={ComponentIOType.BYTES},
+                name="content_bytes_list",
+                allowed_types={ComponentIOType.BYTES_LIST},
                 required=True,
             ),
         )
@@ -38,6 +38,7 @@ class StoreODB(RagnarokComponent):
         return ()
 
     @classmethod
-    async def execute(cls, bucket_name: str, object_key: str, content_bytes: bytes) -> Dict[str, Any]:
-        await minio_client.upload_object(bucket_name, object_key, content_bytes)
+    async def execute(cls, bucket_name: str, chunk_ids: List[str], content_bytes_list: List[bytes]) -> Dict[str, Any]:
+        for chunk_id, content_bytes in zip(chunk_ids, content_bytes_list):
+            await minio_client.upload_object(bucket_name, chunk_id, content_bytes)
         return {}

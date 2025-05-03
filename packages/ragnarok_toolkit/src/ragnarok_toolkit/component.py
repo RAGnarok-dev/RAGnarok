@@ -23,7 +23,9 @@ class ComponentIOType(StrEnum):
     INT = "INT"
     FLOAT = "FLOAT"
     FLOAT_LIST = "FLOAT_LIST"
+    FLOAT_LIST_LIST = "FLOAT_LIST_LIST"
     BYTES = "BYTES"
+    BYTES_LIST = "BYTES_LIST"
     VEC_POINT = "VEC_POINT"
     VEC_POINT_LIST = "VEC_POINT_LIST"
     SEARCH_PAYLOAD_DICT = "SEARCH_PAYLOAD_DICT"
@@ -38,8 +40,11 @@ TYPE_MAPPING = {
     ComponentIOType.INT: int,
     ComponentIOType.FLOAT: float,
     ComponentIOType.STRING: str,
+    ComponentIOType.STRING_LIST: List[str],
     ComponentIOType.BYTES: bytes,
+    ComponentIOType.BYTES_LIST: List[bytes],
     ComponentIOType.FLOAT_LIST: List[float],
+    ComponentIOType.FLOAT_LIST_LIST: List[List[float]],
     ComponentIOType.VEC_POINT: QdrantPoint,
     ComponentIOType.VEC_POINT_LIST: List[QdrantPoint],
     ComponentIOType.SEARCH_PAYLOAD_DICT: SearchPayloadDict,

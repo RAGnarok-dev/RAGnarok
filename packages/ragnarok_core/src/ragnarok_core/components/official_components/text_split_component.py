@@ -1,21 +1,21 @@
 import re
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
 import pdfplumber
-from sentence_transformers import SentenceTransformer
-from typing import Any, Dict, Optional, Tuple, List
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-
+from sentence_transformers import SentenceTransformer
 
 
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
     ENABLE_HINT_CHECK: bool = True
-    oaiembeds = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+    oaiembeds = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
@@ -34,10 +34,7 @@ class TextSplitComponent(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (
-            ComponentOutputTypeOption(name="text_chunks", type=ComponentIOType.LIST_STRING),
-        )
-
+        return (ComponentOutputTypeOption(name="text_chunks", type=ComponentIOType.STRING_LIST),)
 
     @classmethod
     def execute(cls, pdf_path: str) -> Dict[str, List[str]]:
@@ -46,7 +43,6 @@ class TextSplitComponent(RagnarokComponent):
         text = cls.extract_text_from_pdf(pdf_path)
         sentences = cls.process_text(text)
         text_chunks = cls.split_by_similarity(sentences, similarity_threshold)
-
         return {"text_chunks": text_chunks}
 
     @staticmethod
@@ -58,7 +54,7 @@ class TextSplitComponent(RagnarokComponent):
     @classmethod
     def process_text(cls, text: str) -> List[Dict[str, Any]]:
         """Splits text into sentences, generates embeddings, and calculates similarity scores."""
-        sentences = [{"sentence": s, "index": i} for i, s in enumerate(re.split(r'(?<=[。！？；])', text)) if s.strip()]
+        sentences = [{"sentence": s, "index": i} for i, s in enumerate(re.split(r"(?<=[。！？；])", text)) if s.strip()]
 
         # Generate sentence embeddings
         embeddings = cls.oaiembeds.encode([s["sentence"] for s in sentences], convert_to_list=True)
@@ -91,5 +87,3 @@ class TextSplitComponent(RagnarokComponent):
             chunks.append("".join(current_chunk))
 
         return chunks
-
-

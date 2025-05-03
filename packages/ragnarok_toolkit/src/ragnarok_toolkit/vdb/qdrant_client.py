@@ -7,7 +7,7 @@ from qdrant_client.models import Distance, PayloadSchemaType
 class PayloadDict(TypedDict):
     db_id: str
     doc_id: str
-    piece_id: str
+    chunk_id: str
 
 
 class SearchPayloadDict(TypedDict, total=False):
@@ -16,7 +16,7 @@ class SearchPayloadDict(TypedDict, total=False):
 
 
 class QdrantPoint(TypedDict):
-    id: int
+    id: str | int
     vector: List[float]
     payload: PayloadDict
 
@@ -79,7 +79,7 @@ class QdrantClient:
         payload_indexes = [
             PayloadIndex(filed_name="db_id", field_schema="keyword"),
             PayloadIndex(filed_name="doc_id", field_schema="keyword"),
-            PayloadIndex(filed_name="piece_id", field_schema="keyword"),
+            PayloadIndex(filed_name="chunk_id", field_schema="keyword"),
         ]
         await cls.create_pyload_indexes(name=name, payload_indexes=payload_indexes)
 
@@ -156,7 +156,7 @@ class QdrantClient:
             top_k (int): Number of results to return
             payload_filters (List[dict]): Payload to filter
         Returns:
-            List[str]: List of piece_id that results belong to
+            List[str]: List of chunk_id that results belong to
         """
         search_result = await cls.qdrant_client.query_points(
             collection_name=name,
@@ -175,10 +175,10 @@ class QdrantClient:
             ),
         )
 
-        piece_ids = []
+        chunk_ids = []
         for point in search_result.points:
-            piece_ids.append(point.payload["piece_id"])
-        return piece_ids
+            chunk_ids.append(point.payload["chunk_id"])
+        return chunk_ids
 
     @classmethod
     async def delete_vectors(cls, name: str, ids: List[int]) -> None:
