@@ -1,7 +1,8 @@
 import asyncio
+import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict, Literal, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Literal, Tuple
 
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
 
@@ -101,3 +102,25 @@ class PipelineEntity:
     def from_json_str(cls, json_str: str) -> "PipelineEntity":
         """instantiate a pipeline entity from a json format string"""
         pass
+
+    def to_json_str(self) -> str:
+        """convert to json format"""
+        nodes: List[Dict[str, Any]] = []
+        connections: List[Dict[str, str]] = []
+        for node_id, pipeline_node in self.node_map.items():
+            node: Dict[str, Any] = {"node_id": node_id, "component": pipeline_node.component.__name__}
+            if pipeline_node.output_name is not None:
+                node["output_name"] = pipeline_node.output_name
+            nodes.append(node)
+            for forward_node_info in pipeline_node.forward_node_info:
+                connections.append(
+                    {
+                        "from_node_id": forward_node_info.from_node_id,
+                        "from_output_name": forward_node_info.from_node_output_name,
+                        "to_node_id": forward_node_info.to_node_id,
+                        "to_node_input_name": forward_node_info.to_node_input_name,
+                    }
+                )
+
+        res = {"nodes": nodes, "connections": connections, "inject_input_mapping": self.inject_input_mapping}
+        return json.dumps(res)

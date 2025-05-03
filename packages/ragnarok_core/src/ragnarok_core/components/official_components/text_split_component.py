@@ -10,6 +10,7 @@ from ragnarok_toolkit.component import (
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
+import 
 
 class UnsupportedFileTypeError(Exception):
     """When the file type is not in the supported list, this exception is thrown."""
@@ -110,6 +111,11 @@ class TextSplitComponent(RagnarokComponent):
             return "word"
         else :
             raise UnsupportedFileTypeError(f"Unsupported file type: {ext}")
+    
+    @staticmethod
+    def pdf2md(pdf_path : str) -> str:
+        """translate pdf to md by Mineru"""
+        
     
 
 
