@@ -56,6 +56,7 @@ class PipelineEntity:
             asyncio.create_task(self.run_node_async(node))
 
         # 3. collect result
+        print("cur remaining num: ", self.remaining_num)
         while self.remaining_num > 0:
             execution_info = await self.result_queue.get()
             if execution_info.type == "process_info":
