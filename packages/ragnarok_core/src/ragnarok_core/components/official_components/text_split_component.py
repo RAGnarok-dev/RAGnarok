@@ -38,7 +38,7 @@ class TextSplitComponent(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (ComponentOutputTypeOption(name="text_chunks", type=ComponentIOType.LIST_STRING),)
+        return (ComponentOutputTypeOption(name="text_chunks", type=ComponentIOType.STRING_LIST),)
 
     @classmethod
     def execute(cls, pdf_path: str) -> Dict[str, List[str]]:

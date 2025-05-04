@@ -100,6 +100,13 @@ class RagnarokComponent(ABC):
         pass
 
     @classmethod
+    def get_detail(cls) -> Dict[str, Tuple[ComponentInputTypeOption, ...] | tuple[ComponentOutputTypeOption, ...]]:
+        return {
+            "input_options": cls.input_options(),
+            "output_options": cls.output_options(),
+        }
+
+    @classmethod
     def validate(cls) -> bool:
         """check if the 'execute' function corresponds to the INPUT_OPTIONS and OUTPUT_OPTIONS"""
         execute_params = get_type_hints(cls.execute)
