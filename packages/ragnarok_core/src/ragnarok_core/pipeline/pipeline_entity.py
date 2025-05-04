@@ -51,10 +51,12 @@ class PipelineEntity:
             self.node_map[node_id].input_data[node_input_name] = actual_input_value
 
         # 2. run beginning task
+        # TODO if begin_nodes is empty, please raise error
         for node in self.begin_nodes:
             asyncio.create_task(self.run_node_async(node))
 
         # 3. collect result
+        print("cur remaining num: ", self.remaining_num)
         while self.remaining_num > 0:
             execution_info = await self.result_queue.get()
             if execution_info.type == "process_info":
