@@ -10,7 +10,7 @@ from ragnarok_toolkit.component import (
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-import 
+import requests
 
 class UnsupportedFileTypeError(Exception):
     """When the file type is not in the supported list, this exception is thrown."""
@@ -18,8 +18,6 @@ class UnsupportedFileTypeError(Exception):
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
     ENABLE_HINT_CHECK: bool = True
-    oaiembeds = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
@@ -45,54 +43,102 @@ class TextSplitComponent(RagnarokComponent):
     @classmethod
     def execute(cls, pdf_path: str) -> Dict[str, List[str]]:
         """Main execution method for processing the PDF and splitting text."""
-        similarity_threshold = 0.5
         text = cls.extract_text_from_pdf(pdf_path)
-        sentences = cls.process_text(text)
-        text_chunks = cls.split_by_similarity(sentences, similarity_threshold)
 
-        return {"text_chunks": text_chunks}
+        sentences = cls.split_sentences(text)
+
+        sentences = cls.combine_sentences(sentences)
+
+        sentences = cls.embed_sentences(sentences)
+
+        sentences = cls.compute_distances(sentences)
+
+        chunks = cls.chunk_sentences(sentences)
+
+        return {"text_chunks": chunks}
 
     class UnsupportedFileTypeError(Exception):
         """When the file type is not in the supported list, this exception is thrown."""
-        
+
     @staticmethod
     def extract_text_from_pdf(pdf_path: str) -> str:
-        """Extracts text from a PDF file."""
+        text = ""
         with pdfplumber.open(pdf_path) as pdf:
-            return "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
+        return text
 
-    @classmethod
-    def process_text(cls, text: str) -> List[Dict[str, Any]]:
-        """Splits text into sentences, generates embeddings, and calculates similarity scores."""
-        sentences = [{"sentence": s, "index": i} for i, s in enumerate(re.split(r'(?<=[。！？；])', text)) if s.strip()]
-
-        # Generate sentence embeddings
-        embeddings = cls.oaiembeds.encode([s["sentence"] for s in sentences], convert_to_list=True)
-        for i, emb in enumerate(embeddings):
-            sentences[i]["embedding"] = emb
-
-        # Compute cosine similarities
-        for i in range(len(sentences) - 1):
-            sentences[i]["similarity"] = cls.cosine_similarity(sentences[i]["embedding"], sentences[i + 1]["embedding"])
+    @staticmethod
+    def split_sentences(text: str) -> List[Dict]:
+        single_sentences_list = re.split(r'(?<=[。！？；])', text)
+        # 转换正字典列表
+        sentences = [{'sentence': x, 'index': i} for i, x in enumerate(single_sentences_list)]
+        sentences[:3]
+        return sentences
+    @staticmethod
+    def combine_sentences(sentences: List[Dict], buffer_size: int = 1) -> List[Dict]:
+        combined_sentences = [
+            ' '.join(
+                sentences[j]['sentence'] for j in range(max(i - buffer_size, 0), min(i + buffer_size, len(sentences))))
+            for i in range(len(sentences))
+        ]
+        # 更新原始字典列表，添加组合后的句子
+        for i, combined_sentence in enumerate(combined_sentences):
+            sentences[i]['combined_sentence'] = combined_sentence
 
         return sentences
 
     @staticmethod
-    def cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
-        """Computes the cosine similarity between two vectors."""
-        return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+    def embed_sentences(sentences: List[Dict]) -> List[Dict]:
+        combined_texts = [x['combined_sentence'] for x in sentences]
+        API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+        headers = {
+            "Authorization": "Bearer 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"
+        }
+
+        try:
+            response = requests.post(API_URL, headers=headers, json={"inputs": combined_texts})
+            response.raise_for_status()
+            embeddings = response.json()
+        except Exception as e:
+            print("获取嵌入失败:", e)
+            return []
+
+        for i in range(len(sentences)):
+            sentences[i]['combined_sentence_embedding'] = embeddings[i]
+
+        return sentences
+
+    @staticmethod
+    def cos_similarity(vec1: List[float], vec2: List[float]) -> float:
+        vec1_arr = np.array(vec1)
+        vec2_arr = np.array(vec2)
+        return float(np.dot(vec1_arr, vec2_arr) / (np.linalg.norm(vec1_arr) * np.linalg.norm(vec2_arr)))
 
     @classmethod
-    def split_by_similarity(cls, sentences: List[Dict[str, Any]], threshold: float) -> List[str]:
-        """Splits text into chunks based on cosine similarity scores."""
-        chunks, current_chunk = [], [sentences[0]["sentence"]]
+    def compute_distances(cls, sentences: List[Dict]) -> List[Dict]:
+        distances = []
+        for i in range(len(sentences) - 1):
+            sim = cls.cos_similarity(
+                sentences[i]['combined_sentence_embedding'],
+                sentences[i + 1]['combined_sentence_embedding']
+            )
+            distance = 1 - sim
+            sentences[i]['distance_to_next'] = distance
+            distances.append(distance)
+        return sentences
 
+    @staticmethod
+    def chunk_sentences(sentences: List[Dict], threshold: float = 0.15) -> List[str]:
+        chunks = []
+        current_chunk = [sentences[0]['sentence']]
         for i in range(1, len(sentences)):
-            if sentences[i - 1]["similarity"] < threshold:
+            if sentences[i - 1].get('distance_to_next', 0) > threshold:
                 chunks.append("".join(current_chunk))
                 current_chunk = []
-            current_chunk.append(sentences[i]["sentence"])
-
+            current_chunk.append(sentences[i]['sentence'])
         if current_chunk:
             chunks.append("".join(current_chunk))
 
@@ -115,6 +161,7 @@ class TextSplitComponent(RagnarokComponent):
     @staticmethod
     def pdf2md(pdf_path : str) -> str:
         """translate pdf to md by Mineru"""
+        
         
     
 

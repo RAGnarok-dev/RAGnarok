@@ -7,12 +7,13 @@ def test_text_split_component():
     # Execute the text splitting component
     output = TextSplitComponent.execute(test_pdf_path)
     # Assertions to check if the output is as expected
-    assert isinstance(output, list), "The output should be a dictionary"
+    assert isinstance(output, dict), "The output should be a dictionary"
     assert all(isinstance(chunk, str) for chunk in output), "All elements in the output list should be strings"
     assert len(output) > 0, "The text chunks list should not be empty"
-    print(len(output))
-    for chunk in output:
-        print("_____________________________")
-        print(chunk)
+    text_chunks = output["text_chunks"]  # 提取出 chunks 列表
+    print(len(text_chunks))
+    for i, chunk in enumerate(text_chunks, 1):
+        print(f"Chunk {i}:\n{chunk}\n{'-' * 40}")
+
 
 
