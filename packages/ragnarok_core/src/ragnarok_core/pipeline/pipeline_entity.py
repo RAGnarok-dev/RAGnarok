@@ -1,6 +1,6 @@
 import asyncio
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List, Literal, Tuple
 
@@ -16,6 +16,11 @@ class PipelineExecutionInfo:
 
     def __post_init__(self):
         self.timestamp = datetime.now()
+
+    def to_json(self) -> str:
+        dict_data = asdict(self)
+        dict_data["timestamp"] = self.timestamp.isoformat()
+        return json.dumps(dict_data)
 
 
 class PipelineEntity:
