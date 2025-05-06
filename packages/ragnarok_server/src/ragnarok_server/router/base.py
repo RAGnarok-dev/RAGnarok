@@ -33,3 +33,10 @@ class ComponentDetailModel(BaseModel):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ComponentDetailModel":
         return cls(name=data["name"], is_official=data["is_official"], detail=data["detail"])
+
+
+class UserRegisterResponseModel(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool

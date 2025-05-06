@@ -38,6 +38,15 @@ class UserRepository:
             stmt = select(User).where(User.id == user_id)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
+        
+    async def get_user_by_email(self, email: str) -> Optional[User]:
+        """
+        Fetch a User by email.
+        """
+        async with self._session_factory() as session:
+            stmt = select(User).where(User.email == email)
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
 
     async def authenticate(self, username: str, password: str) -> Optional[User]:
         """
@@ -53,3 +62,28 @@ class UserRepository:
             return None
 
         return user
+
+    async def create_user(
+        self,
+        username: str,
+        email: str,
+        password: str,
+        tenant_id: Optional[int] = None,
+    ) -> User:
+        """
+        Create a new user with hashed password.
+        """
+        password_hash = pwd_context.hash(password)
+        user = User(
+            username=username,
+            email=email,
+            password_hash=password_hash,
+            tenant_id=tenant_id,
+            is_active=True,
+        )
+        async with self._session_factory() as session:
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            logger.info(f"Created new user {username!r} (id={user.id})")
+            return user
