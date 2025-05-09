@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict
 
 from fastapi import APIRouter
 from pydantic import BaseModel
+from ragnarok_server.rdb.models import Pipeline
 
 
 class CustomAPIRouter(APIRouter):
@@ -33,3 +34,23 @@ class ComponentDetailModel(BaseModel):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ComponentDetailModel":
         return cls(name=data["name"], is_official=data["is_official"], detail=data["detail"])
+
+
+class PipelineDetailModel(BaseModel):
+    id: int
+    name: str
+    tenant_id: int
+    content: str
+    description: str | None
+    avatar: str | None
+
+    @classmethod
+    def from_pipeline(cls, pipeline: Pipeline) -> "PipelineDetailModel":
+        return cls(
+            id=pipeline.id,
+            name=pipeline.name,
+            tenant_id=pipeline.tenant_id,
+            content=pipeline.content,
+            description=pipeline.description,
+            avatar=pipeline.avatar,
+        )

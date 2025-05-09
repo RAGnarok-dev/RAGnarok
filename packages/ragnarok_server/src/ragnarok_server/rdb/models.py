@@ -100,3 +100,14 @@ class Permission(Base):
             "principal_id", "principal_type", "knowledge_base_id", "permission_type", name="_principal_kb_uc"
         ),
     )
+
+
+class Pipeline(Base):
+    __tablename__ = "pipelines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String, nullable=True)
