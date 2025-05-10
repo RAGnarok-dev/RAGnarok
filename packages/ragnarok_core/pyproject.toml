@@ -8,7 +8,11 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "ragnarok-toolkit"
+    "aiobotocore>=2.21.1",
+    "ragnarok-toolkit",
+    "requests>=2.32.3",
+    "pdfplumber>=0.11.6",
+    "sentence-transformers>=4.1.0",
 ]
 
 [build-system]
