@@ -20,7 +20,7 @@ async def test_llm():
     model = "gpt-4o"
     message = "What's the weather today?"
     temperature = 0.0
-    top_p = 0.1
+    top_p = 0.9
     intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
 
     llm_return_intent = await LLMIntentRecognitionComponent.execute(
