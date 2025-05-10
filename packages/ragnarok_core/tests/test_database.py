@@ -1,7 +1,9 @@
 import socket
 
 import pytest
-from ragnarok_core.components.official_components.store_odb import StoreODB
+from ragnarok_core.components.official_components.object_database_component import (
+    StoreODB,
+)
 from ragnarok_core.components.official_components.vector_database_component import (
     RetrieveComponent,
     StoreVDB,
