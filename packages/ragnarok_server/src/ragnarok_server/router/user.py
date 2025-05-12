@@ -1,7 +1,7 @@
 from fastapi import Depends, Query
 from ragnarok_server.service.user import user_service
 from ragnarok_server.rdb.models import User
-from ragnarok_server.router.base import CustomAPIRouter, UserRegisterResponseModel
+from ragnarok_server.router.base import CustomAPIRouter, UserRegisterResponseModel, UserLoginResponseModel
 from ragnarok_server.common import Response, ResponseCode
 
 router = CustomAPIRouter(prefix="/users", tags=["User"])
@@ -30,3 +30,27 @@ async def register_user(
             is_active=user.is_active,
         )
     )
+
+@router.post(
+    "/login",
+    summary="Login an existing user",
+    response_model=Response[UserLoginResponseModel],
+)
+async def login_user_by_username(
+    username: str = Query(..., description="User name"),
+    password: str = Query(..., description="User password"),
+    service=Depends(lambda: user_service),
+) -> Response[UserLoginResponseModel]:
+    """
+    Authenticate a user and (optionally) return an access token.
+    """
+    user: User = await service.login_user_by_username(username, password)
+    return ResponseCode.OK.to_response(
+        data=UserLoginResponseModel(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            is_active=user.is_active
+        )
+    )
+

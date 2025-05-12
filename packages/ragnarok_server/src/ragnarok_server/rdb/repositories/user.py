@@ -87,3 +87,4 @@ class UserRepository:
             await session.refresh(user)
             logger.info(f"Created new user {username!r} (id={user.id})")
             return user
+

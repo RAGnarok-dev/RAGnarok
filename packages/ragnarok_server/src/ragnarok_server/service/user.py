@@ -4,7 +4,8 @@ from typing import Optional
 
 from ragnarok_server.rdb.repositories.user import UserRepository
 from ragnarok_server.rdb.models import User
-from ragnarok_server.exceptions import DuplicateEntryError
+from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError
+
 
 class UserService:
     """
@@ -32,6 +33,22 @@ class UserService:
             password=password,
             tenant_id=tenant_id,
         )
+
+    async def login_user_by_username(self, username: str, password: str) -> User:
+        user = self.repo.get_user_by_username(username)
+
+        if not user:
+            raise NoResultFoundError("The user does not exist")
+
+        # # 校验密码
+        # if not verify_password(password, user.password):  # 取决于你是否加密保存密码
+        #     raise InvalidArgsError("Password error")
+
+        return await self.repo.authenticate(
+            username=username,
+            password=password,
+        )
+
 
 # Initialize the service instance
 user_service = UserService()

@@ -40,3 +40,21 @@ class UserRegisterResponseModel(BaseModel):
     username: str
     email: str
     is_active: bool
+
+class UserLoginResponseModel(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool
+
+class TenantRegisterResponseModel(BaseModel):
+    id: int
+    name: str
+    email: str
+    is_active: bool
+
+class TenantLoginResponseModel(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool
