@@ -3,7 +3,8 @@
 
 from ragnarok_server.rdb.repositories.tenant import TenantRepository
 from ragnarok_server.rdb.models import Tenant
-from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError
+from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
+
 
 
 class TenantService:
@@ -32,16 +33,33 @@ class TenantService:
             password=password,     
         )
 
-    async def login_tenant_by_tenantname(self, tenantname: str, password: str) -> Tenant:
-        tenant = self.repo.get_tenant_by_tenantname(tenantname)
+    async def login_tenant(self, email: str = None, tenantname: str = None, password: str = None) -> Tenant:
+        if not (tenantname or email):
+            raise InvalidArgsError("Must provide either tenantname or email")
+        if not password:
+            raise InvalidArgsError("Password is required")
+
+        tenant = None
+        if tenantname:
+            tenant = await self.repo.get_tenant_by_tenantname(tenantname)
+        elif email:
+            tenant = await self.repo.get_tenant_by_tenantname(email)
 
         if not tenant:
-            raise NoResultFoundError("The user does not exist")
+            raise NoResultFoundError("Tenant not found")
+
+        # # 校验密码
+        # if not verify_password(password, user.password):  # 取决于你是否加密保存密码
+        #     raise InvalidArgsError("Password error")
 
         return await self.repo.authenticate(
             tenantname=tenantname,
+            email=email,
             password=password,
         )
 
+
 tenant_service = TenantService()
+
+
          

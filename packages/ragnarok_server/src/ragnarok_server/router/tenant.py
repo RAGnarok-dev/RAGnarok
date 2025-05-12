@@ -1,8 +1,10 @@
+from typing import Optional
 from fastapi import Depends, Query
 from ragnarok_server.service.tenant import tenant_service
 from ragnarok_server.rdb.models import Tenant
 from ragnarok_server.router.base import CustomAPIRouter,TenantRegisterResponseModel, TenantLoginResponseModel
 from ragnarok_server.common import Response, ResponseCode
+from ragnarok_server.exceptions import InvalidArgsError
 
 
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
@@ -36,19 +38,24 @@ async def register_tenant(
     summary="Login an existing tenant",
     response_model=Response[TenantLoginResponseModel],
 )
-async def login_user_by_username(
-    tenantname: str = Query(..., description="Tenant name"),
+async def login_tenant(
+    tenantname: Optional[str] = Query(None, description="Tenant name"),
+    email: Optional[str] = Query(None, description="Tenant Email"),
     password: str = Query(..., description="Tenant password"),
     service=Depends(lambda: tenant_service),
 ) -> Response[TenantLoginResponseModel]:
     """
-    Authenticate a user and (optionally) return an access token.
+    Authenticate a tenant by either tenantname or email.
     """
-    tenant: Tenant = await service.login_tenant_by_tenantname(tenantname, password)
+    if not tenantname and not email:
+        raise InvalidArgsError("Either tenantname or email must be provided")
+
+    tenant: Tenant = await service.login_tenant(email, tenantname, password)
+
     return ResponseCode.OK.to_response(
         data=TenantLoginResponseModel(
             id=tenant.id,
-            username=tenant.name,
+            tenantname=tenant.name,
             email=tenant.email,
             is_active=tenant.is_active
         )

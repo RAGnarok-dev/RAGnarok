@@ -60,17 +60,27 @@ class TenantRepository:
             logger.info(f"Created new tenant {tenantname!r}(id={tenant.id})")
             return tenant
 
-    async def authenticate(self, tenantname: str, password: str) -> Optional[Tenant]:
+    async def authenticate(self, tenantname: Optional[str] = None, email: Optional[str] = None, password: str = "") -> \
+            Optional[Tenant]:
         """
-        Validate credentials. Returns the Tenant if successful, else None.
+        Validate credentials using either username or email. Returns the Tenant if successful, else None.
         """
-        tenant = await self.get_tenant_by_tenantname(tenantname)
+        if not tenantname and not email:
+            logger.debug("Authentication failed: no identifier (tenantname/email) provided.")
+            return None
+
+        tenant = None
+        if tenantname:
+            tenant = await self.get_tenant_by_tenantname(tenantname)
+        elif email:
+            tenant = await self.get_tenant_by_email(email)
+
         if not tenant:
-            logger.debug(f"Authentication failed: tenant {tenantname!r} not found.")
+            logger.debug(f"Authentication failed: tenant not found.")
             return None
 
         if not pwd_context.verify(password, tenant.password_hash):
-            logger.debug(f"Authentication failed: invalid password for {tenantname!r}.")
+            logger.debug(f"Authentication failed: invalid password.")
             return None
 
         return tenant

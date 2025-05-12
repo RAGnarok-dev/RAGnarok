@@ -48,17 +48,27 @@ class UserRepository:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
-    async def authenticate(self, username: str, password: str) -> Optional[User]:
+    async def authenticate(self, username: Optional[str] = None, email: Optional[str] = None, password: str = "") -> \
+    Optional[User]:
         """
-        Validate credentials. Returns the User if successful, else None.
+        Validate credentials using either username or email. Returns the User if successful, else None.
         """
-        user = await self.get_user_by_username(username)
+        if not username and not email:
+            logger.debug("Authentication failed: no identifier (username/email) provided.")
+            return None
+
+        user = None
+        if username:
+            user = await self.get_user_by_username(username)
+        elif email:
+            user = await self.get_user_by_email(email)
+
         if not user:
-            logger.debug(f"Authentication failed: user {username!r} not found.")
+            logger.debug(f"Authentication failed: user not found.")
             return None
 
         if not pwd_context.verify(password, user.password_hash):
-            logger.debug(f"Authentication failed: invalid password for {username!r}.")
+            logger.debug(f"Authentication failed: invalid password.")
             return None
 
         return user

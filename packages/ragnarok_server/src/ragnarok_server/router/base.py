@@ -55,6 +55,6 @@ class TenantRegisterResponseModel(BaseModel):
 
 class TenantLoginResponseModel(BaseModel):
     id: int
-    username: str
+    tenantname: str
     email: str
     is_active: bool

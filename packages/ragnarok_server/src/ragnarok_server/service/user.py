@@ -4,7 +4,7 @@ from typing import Optional
 
 from ragnarok_server.rdb.repositories.user import UserRepository
 from ragnarok_server.rdb.models import User
-from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError
+from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
 
 
 class UserService:
@@ -34,11 +34,20 @@ class UserService:
             tenant_id=tenant_id,
         )
 
-    async def login_user_by_username(self, username: str, password: str) -> User:
-        user = self.repo.get_user_by_username(username)
+    async def login_user(self, email: str = None, username: str = None, password: str = None) -> User:
+        if not (username or email):
+            raise InvalidArgsError("Must provide either username or email")
+        if not password:
+            raise InvalidArgsError("Password is required")
+
+        user = None
+        if username:
+            user = await self.repo.get_user_by_username(username)
+        elif email:
+            user = await self.repo.get_user_by_email(email)
 
         if not user:
-            raise NoResultFoundError("The user does not exist")
+            raise NoResultFoundError("User not found")
 
         # # 校验密码
         # if not verify_password(password, user.password):  # 取决于你是否加密保存密码
@@ -46,6 +55,7 @@ class UserService:
 
         return await self.repo.authenticate(
             username=username,
+            email=email,
             password=password,
         )
 

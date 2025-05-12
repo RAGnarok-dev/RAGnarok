@@ -1,8 +1,10 @@
+from typing import Optional
 from fastapi import Depends, Query
 from ragnarok_server.service.user import user_service
 from ragnarok_server.rdb.models import User
 from ragnarok_server.router.base import CustomAPIRouter, UserRegisterResponseModel, UserLoginResponseModel
 from ragnarok_server.common import Response, ResponseCode
+from ragnarok_server.exceptions import InvalidArgsError, NoResultFoundError
 
 router = CustomAPIRouter(prefix="/users", tags=["User"])
 
@@ -36,15 +38,20 @@ async def register_user(
     summary="Login an existing user",
     response_model=Response[UserLoginResponseModel],
 )
-async def login_user_by_username(
-    username: str = Query(..., description="User name"),
+async def login_user(
+    username: Optional[str] = Query(None, description="User name"),
+    email: Optional[str] = Query(None, description="User Email"),
     password: str = Query(..., description="User password"),
     service=Depends(lambda: user_service),
 ) -> Response[UserLoginResponseModel]:
     """
-    Authenticate a user and (optionally) return an access token.
+    Authenticate a user by either username or email.
     """
-    user: User = await service.login_user_by_username(username, password)
+    if not username and not email:
+        raise InvalidArgsError("Either username or email must be provided")
+
+    user: User = await service.login_user(email, username, password)
+
     return ResponseCode.OK.to_response(
         data=UserLoginResponseModel(
             id=user.id,
