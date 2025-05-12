@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 from openai import AsyncOpenAI
 from ragnarok_toolkit.component import (
@@ -24,8 +24,47 @@ class LLMRequestComponent(RagnarokComponent):
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
-        """the options of all the input value"""
+        """
+        Executes the async retrieval function based on current question, history, and content.
+
+        Parameters:
+        - question: str, the user query.
+        - content_list: List[str], background knowledge.
+        - history: dict, previous dialogue history.
+        - model_name, api_key, etc...
+
+        Example format of `history`:
+        history = {
+            "messages": [
+                {"role": "user", "content": "Hi, can you help me with X?"},
+                {"role": "assistant", "content": "Sure, I can help you with X by doing Y."},
+                {"role": "user", "content": "That sounds good. What about Z?"},
+                {"role": "assistant", "content": "Regarding Z, here's what I found..."}
+            ]
+        }
+        """
+
         return (
+            ComponentInputTypeOption(
+                name="user_question",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="content_list",
+                allowed_types={ComponentIOType.STRING_LIST},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="user_history",
+                allowed_types={ComponentIOType.DICT},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="model_name",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
             ComponentInputTypeOption(
                 name="api_key",
                 allowed_types={ComponentIOType.STRING},
@@ -46,21 +85,7 @@ class LLMRequestComponent(RagnarokComponent):
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
             ),
-            ComponentInputTypeOption(
-                name="model_name",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="model_name",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="messages",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
+            
         )
 
     @classmethod
@@ -70,24 +95,47 @@ class LLMRequestComponent(RagnarokComponent):
 
     @classmethod
     async def execute(
-        cls, api_key: str, base_url: str, temperature: float, top_p: float, model_name: str, messages: str
+        cls,
+        user_question: str,
+        content_list: List[str],
+        user_history: dict,
+        model_name: str,
+        api_key: str,
+        base_url: str,
+        temperature: float,
+        top_p: float, 
     ) -> Dict[str, Any]:
         """
-        execute the component function, could be either sync or async
+        execute the async component function
         """
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         messages = [
             {
                 "role": "system",
-                "content": "you are a helpful AI assistant for information retrieving",
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": messages},
-                ],
+                "content": "you are a helpful AI assistant",
             },
         ]
+        # add history
+        for entry in user_history.get("messages", []):
+            messages.append({
+                "role": entry["role"],
+                "content": entry["content"]
+            })
+        
+        # add retrieved information
+        if content_list:
+            knowledge_text = "\n\n".join(content_list)
+            messages.append({
+                "role": "user",
+                "content": f"Here is some background information for your reference:\n{knowledge_text}"
+            })
+
+        # add question
+        messages.append({
+            "role": "user",
+            "content": f"Based on the history and retrieved information above, strictly use the same language to answer the question: {user_question}",
+        },)
+
         while True:
             try:
                 completion = await client.chat.completions.create(
@@ -144,6 +192,21 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
+                name="user_question",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="intent_dict",
+                allowed_types={ComponentIOType.DICT},  # expects JSON string
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="model_name",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
+            ComponentInputTypeOption(
                 name="api_key",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
@@ -163,21 +226,6 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
             ),
-            ComponentInputTypeOption(
-                name="model_name",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="intent_dict",
-                allowed_types={ComponentIOType.DICT},  # expects JSON string
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="user_question",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
         )
 
     @classmethod
@@ -187,13 +235,13 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
     @classmethod
     async def execute(
         cls,
+        user_question: str,
+        intent_dict: dict,
+        model_name: str,
         api_key: str,
         base_url: str,
         temperature: float,
         top_p: float,
-        model_name: str,
-        intent_dict: dict,
-        user_question: str,
     ) -> Dict[str, Any]:
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
