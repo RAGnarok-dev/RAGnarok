@@ -44,7 +44,7 @@ class TenantService:
         if tenantname:
             tenant = await self.repo.get_tenant_by_tenantname(tenantname)
         elif email:
-            tenant = await self.repo.get_tenant_by_tenantname(email)
+            tenant = await self.repo.get_tenant_by_email(email)
 
         if not tenant:
             raise NoResultFoundError("Tenant not found")
