@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+from pydantic import EmailStr
 
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
@@ -28,7 +29,7 @@ class TenantRepository:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
         
-    async def get_tenant_by_email(self, email: str) -> Optional[Tenant]:
+    async def get_tenant_by_email(self, email: EmailStr) -> Optional[Tenant]:
         """
         Fetch a Tenant by email.
         """
@@ -40,7 +41,7 @@ class TenantRepository:
     async def create_tenant(
         self, 
         tenantname: str, 
-        email: str, 
+        email: EmailStr,
         password: str,
     ) -> Tenant:
         """
@@ -60,7 +61,7 @@ class TenantRepository:
             logger.info(f"Created new tenant {tenantname!r}(id={tenant.id})")
             return tenant
 
-    async def authenticate(self, tenantname: Optional[str] = None, email: Optional[str] = None, password: str = "") -> \
+    async def authenticate(self, tenantname: Optional[str] = None, email: Optional[EmailStr] = None, password: str = "") -> \
             Optional[Tenant]:
         """
         Validate credentials using either username or email. Returns the Tenant if successful, else None.

@@ -4,6 +4,7 @@
 from ragnarok_server.rdb.repositories.tenant import TenantRepository
 from ragnarok_server.rdb.models import Tenant
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
+from pydantic import EmailStr
 
 
 
@@ -16,7 +17,7 @@ class TenantService:
         self.repo = repo
         
     async def register_tenant(
-        self, email: str, password: str, tenantname: str, 
+        self, email: EmailStr, password: str, tenantname: str,
     ) -> Tenant:
         # 1) Check if tenantname is already taken
         if await self.repo.get_tenant_by_tenantname(tenantname):
@@ -33,7 +34,7 @@ class TenantService:
             password=password,     
         )
 
-    async def login_tenant(self, email: str = None, tenantname: str = None, password: str = None) -> Tenant:
+    async def login_tenant(self, email: EmailStr = None, tenantname: str = None, password: str = None) -> Tenant:
         if not (tenantname or email):
             raise InvalidArgsError("Must provide either tenantname or email")
         if not password:

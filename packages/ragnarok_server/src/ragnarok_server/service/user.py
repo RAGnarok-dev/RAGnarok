@@ -1,7 +1,7 @@
 # ragnarok_server/service/user.py
 
 from typing import Optional
-
+from pydantic import EmailStr
 from ragnarok_server.rdb.repositories.user import UserRepository
 from ragnarok_server.rdb.models import User
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
@@ -16,7 +16,7 @@ class UserService:
         self.repo = repo
 
     async def register_user(
-        self, email: str, password: str, nickname: str, tenant_id: Optional[int] = None
+        self, email: EmailStr, password: str, nickname: str, tenant_id: Optional[int] = None
     ) -> User:
         # 1) Check if username is already taken
         if await self.repo.get_user_by_username(nickname):
@@ -34,7 +34,7 @@ class UserService:
             tenant_id=tenant_id,
         )
 
-    async def login_user(self, email: str = None, username: str = None, password: str = None) -> User:
+    async def login_user(self, email: EmailStr = None, username: str = None, password: str = None) -> User:
         if not (username or email):
             raise InvalidArgsError("Must provide either username or email")
         if not password:

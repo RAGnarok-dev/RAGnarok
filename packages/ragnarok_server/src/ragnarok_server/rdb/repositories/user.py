@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-
+from pydantic import EmailStr
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import User
@@ -39,7 +39,7 @@ class UserRepository:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
         
-    async def get_user_by_email(self, email: str) -> Optional[User]:
+    async def get_user_by_email(self, email: EmailStr) -> Optional[User]:
         """
         Fetch a User by email.
         """
@@ -48,7 +48,7 @@ class UserRepository:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
-    async def authenticate(self, username: Optional[str] = None, email: Optional[str] = None, password: str = "") -> \
+    async def authenticate(self, username: Optional[str] = None, email: Optional[EmailStr] = None, password: str = "") -> \
     Optional[User]:
         """
         Validate credentials using either username or email. Returns the User if successful, else None.
@@ -76,7 +76,7 @@ class UserRepository:
     async def create_user(
         self,
         username: str,
-        email: str,
+        email: EmailStr,
         password: str,
         tenant_id: Optional[int] = None,
     ) -> User:

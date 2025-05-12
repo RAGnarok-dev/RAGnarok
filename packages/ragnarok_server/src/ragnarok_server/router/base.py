@@ -1,8 +1,7 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel
-
+from pydantic import BaseModel, EmailStr
 
 class CustomAPIRouter(APIRouter):
     """
@@ -35,26 +34,53 @@ class ComponentDetailModel(BaseModel):
         return cls(name=data["name"], is_official=data["is_official"], detail=data["detail"])
 
 
+class UserRegisterRequestModel(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+
+
 class UserRegisterResponseModel(BaseModel):
     id: int
     username: str
-    email: str
+    email: EmailStr
     is_active: bool
+
+
+class UserLoginRequestModel(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: str
+
 
 class UserLoginResponseModel(BaseModel):
     id: int
     username: str
-    email: str
+    email: EmailStr
     is_active: bool
+
+
+class TenantRegisterRequestModel(BaseModel):
+    email: EmailStr
+    tenantname: str
+    password: str
+
 
 class TenantRegisterResponseModel(BaseModel):
     id: int
-    name: str
-    email: str
+    tenantname: str
+    email: EmailStr
     is_active: bool
+
+
+class TenantLoginRequestModel(BaseModel):
+    tenantname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: str
+
 
 class TenantLoginResponseModel(BaseModel):
     id: int
     tenantname: str
-    email: str
+    email: EmailStr
     is_active: bool
