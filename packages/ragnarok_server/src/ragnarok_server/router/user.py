@@ -12,7 +12,7 @@ from ragnarok_server.router.base import(
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError
 
-router = CustomAPIRouter(prefix="/users", tags=["User"])
+router = CustomAPIRouter(prefix="/user", tags=["User"])
 
 
 @router.post(

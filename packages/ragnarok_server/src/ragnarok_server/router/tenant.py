@@ -13,7 +13,7 @@ from ragnarok_server.router.base import (
 )
 
 
-router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
+router = CustomAPIRouter(prefix="/tenant", tags=["Tenant"])
 
 @router.post(
     "/register",
