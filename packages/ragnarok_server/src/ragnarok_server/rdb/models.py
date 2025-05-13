@@ -88,9 +88,9 @@ class KnowledgeBase(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     embedding_model_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    odb_name: Mapped[str] = mapped_column(String, nullable=False)
+    root_file_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    created_by: Mapped[str] = mapped_column(String, nullable=False)
+    created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
 
 class Permission(Base):

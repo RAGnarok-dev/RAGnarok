@@ -42,11 +42,31 @@ class FileService:
         return name
 
     async def check_file_name(self, file_name: str, folder_id: int) -> bool:
+        if await self.file_repo.check_file_name(file_name, folder_id):
+            logger.error(f"the name '{file_name}' is exisited")
         return await self.file_repo.check_file_name(file_name, folder_id)
 
     async def check_parent_folder(self, parent_id: int) -> bool:
         file = await self.file_repo.get_file_by_id(parent_id)
-        return file.type == "folder" or file.type == "root"
+        if not (file and (file.type == "folder" or file.type == "root")):
+            logger.warning(f"file {file.name} isn't a folder")
+            return False
+        return True
+
+    async def create_kb_root_folder(
+        self, knowldge_base_name: str, knowledge_base_id: int, created_by: str, description: str
+    ) -> File:
+        file = File(
+            name=knowldge_base_name,
+            description=description,
+            type="root",
+            size=0,
+            location="/",
+            created_by=created_by,
+            parent_id=None,
+            knowledge_base_id=knowledge_base_id,
+        )
+        return await self.file_repo.create_file(file)
 
     async def create_file(
         self,
