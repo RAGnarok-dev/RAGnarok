@@ -1,5 +1,6 @@
 from typing import Optional
-from fastapi import Depends, Query, Body
+from fastapi import Depends, Body
+from fastapi import Response as FastAPIResponse
 from ragnarok_server.service.user import user_service
 from ragnarok_server.rdb.models import User
 from ragnarok_server.router.base import(
@@ -11,8 +12,9 @@ from ragnarok_server.router.base import(
 )
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError
+from ragnarok_server.auth import get_current_user
 
-router = CustomAPIRouter(prefix="/user", tags=["User"])
+router = CustomAPIRouter(prefix="/users", tags=["User"])
 
 
 @router.post(
@@ -49,25 +51,32 @@ async def register_user(
 async def login_user(
     login_data: UserLoginRequestModel = Body(...),
     service=Depends(lambda: user_service),
+    response: FastAPIResponse = None,
 ) -> Response[UserLoginResponseModel]:
     """
     Authenticate a user by either username or email.
+    If the user is already authenticated, return their details without requiring a new login.
     """
     if not login_data.username and not login_data.email:
         raise InvalidArgsError("Either username or email must be provided")
 
-    user: User = await service.login_user(
+    result: dict = await service.login_user(
         login_data.email,
         login_data.username,
         login_data.password
     )
+    user = result["user"]
+
+    response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
 
     return ResponseCode.OK.to_response(
         data=UserLoginResponseModel(
             id=user.id,
             username=user.username,
             email=user.email,
-            is_active=user.is_active
+            is_active=user.is_active,
+            access_token=result["access_token"],
+            token_type=result["token_type"]
         )
     )
 

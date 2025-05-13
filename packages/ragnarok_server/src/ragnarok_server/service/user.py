@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from ragnarok_server.rdb.repositories.user import UserRepository
 from ragnarok_server.rdb.models import User
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
-
+from ragnarok_server.auth import create_access_token
 
 class UserService:
     """
@@ -34,7 +34,7 @@ class UserService:
             tenant_id=tenant_id,
         )
 
-    async def login_user(self, email: EmailStr = None, username: str = None, password: str = None) -> User:
+    async def login_user(self, email: EmailStr = None, username: str = None, password: str = None) -> dict:
         if not (username or email):
             raise InvalidArgsError("Must provide either username or email")
         if not password:
@@ -53,11 +53,24 @@ class UserService:
         # if not verify_password(password, user.password):  # 取决于你是否加密保存密码
         #     raise InvalidArgsError("Password error")
 
-        return await self.repo.authenticate(
+        user = await self.repo.authenticate(
             username=username,
             email=email,
             password=password,
         )
+        if not user:
+            raise InvalidArgsError("Password error")
+
+        token = create_access_token(
+            principal_id=user.id,
+            principal_type="user"
+        )
+
+        return {
+            "user": user,
+            "access_token": token,
+            "token_type": "bearer"
+        }
 
 
 # Initialize the service instance

@@ -5,6 +5,8 @@ from ragnarok_server.rdb.repositories.tenant import TenantRepository
 from ragnarok_server.rdb.models import Tenant
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
 from pydantic import EmailStr
+from ragnarok_server.auth import create_access_token
+
 
 
 
@@ -34,7 +36,7 @@ class TenantService:
             password=password,     
         )
 
-    async def login_tenant(self, email: EmailStr = None, tenantname: str = None, password: str = None) -> Tenant:
+    async def login_tenant(self, email: EmailStr = None, tenantname: str = None, password: str = None) -> dict:
         if not (tenantname or email):
             raise InvalidArgsError("Must provide either tenantname or email")
         if not password:
@@ -53,11 +55,24 @@ class TenantService:
         # if not verify_password(password, user.password):  # 取决于你是否加密保存密码
         #     raise InvalidArgsError("Password error")
 
-        return await self.repo.authenticate(
+        tenant = await self.repo.authenticate(
             tenantname=tenantname,
             email=email,
             password=password,
         )
+        if not tenant:
+            raise InvalidArgsError("Password error")
+
+        token = create_access_token(
+            principal_id=tenant.id,
+            principal_type="tenant"
+        )
+
+        return {
+            "tenant": tenant,
+            "access_token": token,
+            "token_type": "bearer"
+        }
 
 
 tenant_service = TenantService()

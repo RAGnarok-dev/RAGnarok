@@ -58,6 +58,8 @@ class UserLoginResponseModel(BaseModel):
     username: str
     email: EmailStr
     is_active: bool
+    access_token: str
+    token_type: str
 
 
 class TenantRegisterRequestModel(BaseModel):
@@ -84,3 +86,5 @@ class TenantLoginResponseModel(BaseModel):
     tenantname: str
     email: EmailStr
     is_active: bool
+    access_token: str
+    token_type: str

@@ -1,5 +1,6 @@
 from fastapi import Body
-from fastapi import Depends, Query
+from fastapi import Depends
+from fastapi import Response as FastAPIResponse
 from ragnarok_server.service.tenant import tenant_service
 from ragnarok_server.rdb.models import Tenant
 from ragnarok_server.common import Response, ResponseCode
@@ -13,7 +14,8 @@ from ragnarok_server.router.base import (
 )
 
 
-router = CustomAPIRouter(prefix="/tenant", tags=["Tenant"])
+router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
+
 
 @router.post(
     "/register",
@@ -41,6 +43,7 @@ async def register_tenant(
         )
     )
 
+
 @router.post(
     "/login",
     summary="Login an existing tenant",
@@ -49,24 +52,32 @@ async def register_tenant(
 async def login_tenant(
     login_data: TenantLoginRequestModel = Body(...),
     service=Depends(lambda: tenant_service),
+    response: FastAPIResponse = None,
 ) -> Response[TenantLoginResponseModel]:
     """
-    Authenticate a tenant by either tenantname or email.
+    Authenticate a user by either tenantname or email.
+    If the tenant is already authenticated, return their details without requiring a new login.
     """
     if not login_data.tenantname and not login_data.email:
         raise InvalidArgsError("Either tenantname or email must be provided")
 
-    tenant: Tenant = await service.login_tenant(
+    result: dict = await service.login_tenant(
         login_data.email,
         login_data.tenantname,
         login_data.password
     )
+
+    tenant = result["tenant"]
+
+    response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
 
     return ResponseCode.OK.to_response(
         data=TenantLoginResponseModel(
             id=tenant.id,
             tenantname=tenant.name,
             email=tenant.email,
-            is_active=tenant.is_active
+            is_active=tenant.is_active,
+            access_token=result["access_token"],
+            token_type=result["token_type"]
         )
     )
