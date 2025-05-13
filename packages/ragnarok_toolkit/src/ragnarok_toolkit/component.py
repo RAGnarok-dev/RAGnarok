@@ -22,6 +22,7 @@ class ComponentIOType(StrEnum):
     STRING_LIST = "STRING_LIST"
     INT = "INT"
     FLOAT = "FLOAT"
+    DICT = "DICT"
     FLOAT_LIST = "FLOAT_LIST"
     FLOAT_LIST_LIST = "FLOAT_LIST_LIST"
     BYTES = "BYTES"
@@ -40,6 +41,7 @@ TYPE_MAPPING = {
     ComponentIOType.INT: int,
     ComponentIOType.FLOAT: float,
     ComponentIOType.STRING: str,
+    ComponentIOType.DICT: dict,
     ComponentIOType.STRING_LIST: List[str],
     ComponentIOType.BYTES: bytes,
     ComponentIOType.BYTES_LIST: List[bytes],
