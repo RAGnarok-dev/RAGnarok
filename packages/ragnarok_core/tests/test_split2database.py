@@ -6,7 +6,9 @@ from ragnarok_core.components.official_components.convert_component import (
 from ragnarok_core.components.official_components.embedding_component import (
     EmbeddingComponent,
 )
-from ragnarok_core.components.official_components.store_odb import StoreODB
+from ragnarok_core.components.official_components.object_database_component import (
+    StoreODB,
+)
 from ragnarok_core.components.official_components.text_split_component import (
     TextSplitComponent,
 )

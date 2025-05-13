@@ -10,7 +10,7 @@ from ragnarok_server.exceptions import (
     custom_runtime_error_handler,
 )
 from ragnarok_server.rdb.engine import init_rdb
-from ragnarok_server.router import component, pipeline
+from ragnarok_server.router import component, file, knowledge_base, pipeline
 from ragnarok_toolkit import config
 
 env = config.ENV
@@ -34,6 +34,8 @@ app.add_exception_handler(CustomRuntimeError, custom_runtime_error_handler)
 
 app.include_router(component.router)
 app.include_router(pipeline.router)
+app.include_router(file.router)
+app.include_router(knowledge_base.router)
 
 
 @app.get("/ping")
