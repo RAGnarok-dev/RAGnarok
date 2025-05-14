@@ -11,14 +11,14 @@ router = CustomAPIRouter(prefix="/files", tags=["File"])
 
 
 class FileResponse(BaseModel):
-    id: int
+    id: str
     name: str
     description: Optional[str]
     type: str
     size: int
     location: str
     created_by: str
-    parent_id: Optional[int]
+    parent_id: Optional[str]
     knowledge_base_id: int
 
     class Config:
@@ -27,7 +27,7 @@ class FileResponse(BaseModel):
 
 @router.post("/uploadFile")
 async def upload_file(
-    parent_id: int = Form(...),
+    parent_id: str = Form(...),
     knowledge_base_id: int = Form(...),
     created_by: str = Form(...),
     description: Optional[str] = Form(None),
@@ -51,7 +51,7 @@ async def upload_file(
 
 class FolderCreateRequest(BaseModel):
     name: str
-    parent_id: int
+    parent_id: str
     knowledge_base_id: int
     created_by: str
     description: Optional[str]
@@ -77,7 +77,7 @@ async def create_folder(request: FolderCreateRequest) -> Response:
 
 
 class FileRemoveRequest(BaseModel):
-    file_id: int
+    file_id: str
 
 
 @router.delete("/removeFile")
@@ -89,8 +89,18 @@ async def remove_file(request: FileRemoveRequest) -> Response:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="No Such File")
 
 
+class FileRequest(BaseModel):
+    file_id: str
+
+
+@router.get("/getFile")
+async def get_file(request: FileRequest) -> Response[FileResponse]:
+    file = await file_service.get_file_by_id(request.file_id)
+    return ResponseCode.OK.to_response(data=FileResponse.model_validate(file))
+
+
 class FileListRequest(BaseModel):
-    file_id: int
+    file_id: str
 
 
 @router.get("/getFileList")
@@ -102,7 +112,7 @@ async def get_file_list(request: FileListRequest) -> Response[ListResponseData[F
 
 
 class GetAllParentsRequest(BaseModel):
-    file_id: int
+    file_id: str
 
 
 @router.get("/getAllParentFolders")
@@ -116,7 +126,7 @@ async def get_all_parent_folders(request: GetAllParentsRequest) -> Response[List
 
 
 class FileRenameRequest(BaseModel):
-    file_id: int
+    file_id: str
     new_name: str
 
 
@@ -133,8 +143,8 @@ async def rename_file(request: FileRenameRequest) -> Response:
 
 
 class FileMoveRequest(BaseModel):
-    file_id: int
-    dest_folder_id: int
+    file_id: str
+    dest_folder_id: str
 
 
 @router.patch("/moveFile")

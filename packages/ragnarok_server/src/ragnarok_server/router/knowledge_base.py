@@ -16,7 +16,7 @@ class KnowledgeBaseResponse(BaseModel):
     title: str
     description: Optional[str]
     embedding_model_id: int
-    root_file_id: int
+    root_file_id: str
     created_by: str
 
     class Config:
