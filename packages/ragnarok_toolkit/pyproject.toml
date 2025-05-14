@@ -11,7 +11,6 @@ dependencies = [
     "blinker>=1.9.0",
     "cachetools>=5.5.2",
     "qdrant-client>=1.13.3",
-    "openai",
 ]
 
 [build-system]
