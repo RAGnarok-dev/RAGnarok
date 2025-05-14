@@ -69,6 +69,7 @@ async def login_user(
     user = result["user"]
 
     response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
+    response.headers["Access-Control-Request-Headers"] = "Authorization"
 
     return ResponseCode.OK.to_response(
         data=UserLoginResponseModel(

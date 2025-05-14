@@ -69,7 +69,7 @@ class UserService:
         return {
             "user": user,
             "access_token": token,
-            "token_type": "bearer"
+            "token_type": "Bearer"
         }
 
 
