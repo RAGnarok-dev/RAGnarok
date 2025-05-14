@@ -79,38 +79,26 @@ async def retitle_knowledge_base(request: KnowledgeBaseRetitleRequest) -> Respon
     return ResponseCode.OK.to_response()
 
 
-class KnowledgeBaseListRequest(BaseModel):
-    created_by: str = "user-system"
-
-
 @router.get("/list")
-async def list_knowledge_base(request: KnowledgeBaseListRequest) -> Response[ListResponseData[KnowledgeBaseResponse]]:
+async def list_knowledge_base(created_by: str = "user-system") -> Response[ListResponseData[KnowledgeBaseResponse]]:
     # TODO: verify the created_by
-    kbs = await kb_service.get_knowledge_base_list_by_creator(request.created_by)
+    kbs = await kb_service.get_knowledge_base_list_by_creator(created_by)
     return ResponseCode.OK.to_response(
         data=ListResponseData(count=len(kbs), items=[KnowledgeBaseResponse.model_validate(kb) for kb in kbs])
     )
 
 
-class KnowledgeBaseGetRequest(BaseModel):
-    id: int
-
-
 @router.get("/get")
-async def get_knowledge_base(request: KnowledgeBaseGetRequest) -> Response[KnowledgeBaseResponse]:
+async def get_knowledge_base(id: int) -> Response[KnowledgeBaseResponse]:
     # TODO: verify the id
-    kb = await kb_service.get_knowledge_base_by_id(request.id)
+    kb = await kb_service.get_knowledge_base_by_id(id)
     return ResponseCode.OK.to_response(data=KnowledgeBaseResponse.model_validate(kb))
 
 
-class KnowledgeBaseGetRootFileRequest(BaseModel):
-    id: int
-
-
 @router.get("/get_root_file")
-async def get_root_file(request: KnowledgeBaseGetRootFileRequest) -> Response[FileResponse]:
+async def get_root_file(id: int) -> Response[FileResponse]:
     # TODO: verify the id
-    kb = await kb_service.get_knowledge_base_by_id(request.id)
+    kb = await kb_service.get_knowledge_base_by_id(id)
     root_file_id = kb.root_file_id
     file = await file_service.get_file_by_id(root_file_id)
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(file))
