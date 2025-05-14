@@ -8,7 +8,8 @@ from ragnarok_server.router.base import(
     UserRegisterRequestModel,
     UserRegisterResponseModel,
     UserLoginRequestModel,
-    UserLoginResponseModel
+    UserLoginResponseModel,
+    UserInfoResponseModel
 )
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError
@@ -79,4 +80,25 @@ async def login_user(
             token_type=result["token_type"]
         )
     )
+
+@router.get(
+    "/info",
+    summary="Get an existing user info",
+    response_model=Response[UserInfoResponseModel],
+)
+async def get_user_info(
+    current_user: User = Depends(get_current_user),
+) -> Response[UserInfoResponseModel]:
+
+    if not current_user:
+        raise InvalidArgsError("User does not exist, please log in")
+
+    return ResponseCode.OK.to_response(
+        data=UserInfoResponseModel(
+            username=current_user.username,
+            id=current_user.id,
+            avatar="avatar"
+        )
+    )
+
 

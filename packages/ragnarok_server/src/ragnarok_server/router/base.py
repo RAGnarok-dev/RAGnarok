@@ -62,6 +62,11 @@ class UserLoginResponseModel(BaseModel):
     token_type: str
 
 
+class UserInfoResponseModel(BaseModel):
+    username: str
+    id: int
+    avatar: str
+
 class TenantRegisterRequestModel(BaseModel):
     email: EmailStr
     tenantname: str
