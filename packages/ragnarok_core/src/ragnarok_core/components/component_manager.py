@@ -1,4 +1,4 @@
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 
 from ragnarok_core.exceptions import DuplicateComponentError, InvalidComponentHintError
 from ragnarok_toolkit.component import RagnarokComponent
@@ -32,6 +32,10 @@ class ComponentManager:
             raise InvalidComponentHintError(component_name=component_info.name)
 
         self.components[component_info.name] = component_info
+
+    def get_component_by_name(self, name: str) -> Optional[ComponentInfo]:
+        """get a component by its name"""
+        return self.components.get(name)
 
     def list_details(self) -> Dict[str, Dict[str, Any]]:
         res = {}

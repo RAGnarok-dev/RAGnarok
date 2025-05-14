@@ -1,7 +1,9 @@
 from typing import Any, Callable, Dict, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel, EmailStr
+
+from pydantic import BaseModel,EmailStr
+from ragnarok_server.rdb.models import Pipeline
 
 class CustomAPIRouter(APIRouter):
     """
@@ -93,3 +95,23 @@ class TenantLoginResponseModel(BaseModel):
     is_active: bool
     access_token: str
     token_type: str
+
+
+class PipelineDetailModel(BaseModel):
+    id: int
+    name: str
+    tenant_id: int
+    content: str
+    description: str | None
+    avatar: str | None
+
+    @classmethod
+    def from_pipeline(cls, pipeline: Pipeline) -> "PipelineDetailModel":
+        return cls(
+            id=pipeline.id,
+            name=pipeline.name,
+            tenant_id=pipeline.tenant_id,
+            content=pipeline.content,
+            description=pipeline.description,
+            avatar=pipeline.avatar,
+        )

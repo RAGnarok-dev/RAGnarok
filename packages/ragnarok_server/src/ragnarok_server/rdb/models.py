@@ -1,7 +1,9 @@
+from enum import Enum
+
 from ragnarok_toolkit.common import PermissionType, PrincipalType
 from sqlalchemy import Boolean
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Integer, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -52,13 +54,32 @@ class User(Base):
     tenant_id: Mapped[int] = mapped_column(Integer, nullable=True)
 
 
+class EmbeddingModel(Base):
+    """
+    EmbeddingModel: a model that can be used to embed text.
+    Fields:
+      - id: PK
+      - name: name of the embedding model
+      - dimension: dimension of the embedding
+    """
+
+    __tablename__ = "embedding_models"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    dimension: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 class KnowledgeBase(Base):
     """
     KnowledgeBase: a resource owned by either a tenant or a user.
     Fields:
       - id: PK
       - title, description
-      - tenant: PK -> tenant
+      - embedding_model: name of the embedding model
+      - embedding_dimension: dimension of the embedding
+
+      - created_by: creator by ('tenant-{tenant_id}' or 'user-{user_id}')
     """
 
     __tablename__ = "knowledge_bases"
@@ -66,8 +87,10 @@ class KnowledgeBase(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
+    embedding_model_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    root_file_id: Mapped[str] = mapped_column(String, nullable=False)
 
-    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
 
 class Permission(Base):
@@ -99,4 +122,54 @@ class Permission(Base):
         UniqueConstraint(
             "principal_id", "principal_type", "knowledge_base_id", "permission_type", name="_principal_kb_uc"
         ),
+    )
+
+
+class Pipeline(Base):
+    __tablename__ = "pipelines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class CreatorType(str, Enum):
+    TENANT = "tenant"
+    USER = "user"
+
+
+class File(Base):
+    """
+    File: represents a file or folder in the system.
+    Fields:
+      - id: PK (format: 'file-{id}')
+      - name: file name
+      - type: file type ('folder' or 'file')
+      - size: file size
+      - location: file location
+      - parent_id: parent file id
+      - created_by: creator by ('tenant-{tenant_id}' or 'user-{user_id}')
+      - knowledge_base_id: knowledge base id
+    """
+
+    __tablename__ = "files"
+
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, server_default=text("concat('file-', nextval('file_id_seq'))")
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    location: Mapped[str] = mapped_column(String, nullable=False)
+    created_by: Mapped[str] = mapped_column(String, nullable=False)
+    # chunk_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    parent_id: Mapped[str] = mapped_column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
+
+    knowledge_base_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False
     )
