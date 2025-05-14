@@ -17,7 +17,7 @@ class FileResponse(BaseModel):
     type: str
     size: int
     location: str
-    created_by: str
+    created_by: str = "user-system"
     parent_id: Optional[str]
     knowledge_base_id: int
 
@@ -29,7 +29,7 @@ class FileResponse(BaseModel):
 async def upload_file(
     parent_id: str = Form(...),
     knowledge_base_id: int = Form(...),
-    created_by: str = Form(...),
+    created_by: str = Form(default="user-system"),
     description: Optional[str] = Form(None),
     file: UploadFile = File(...),
 ) -> Response[FileResponse]:
@@ -53,7 +53,7 @@ class FolderCreateRequest(BaseModel):
     name: str
     parent_id: str
     knowledge_base_id: int
-    created_by: str
+    created_by: str = "user-system"
     description: Optional[str]
 
 

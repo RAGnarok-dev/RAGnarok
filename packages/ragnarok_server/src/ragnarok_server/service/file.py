@@ -72,9 +72,9 @@ class FileService:
         name: str,
         type: str,
         size: int,
-        created_by: str,
         parent_id: str,
         knowledge_base_id: int,
+        created_by: str = "user-system",
         description: Optional[str] = None,
     ) -> File:
         parent_file = await self.file_repo.get_file_by_id(parent_id)
