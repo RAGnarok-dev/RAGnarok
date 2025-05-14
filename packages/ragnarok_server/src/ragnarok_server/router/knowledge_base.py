@@ -65,7 +65,7 @@ async def retitle_knowledge_base(id: int, title: str) -> Response:
         raise HTTPException(status_code=400, content="Knowledge base not found")
     if not await kb_service.validate_title(title, kb.created_by):
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
-    await file_service.rename_file(kb.root_file_id, title)
+    await file_service.rename_root_file(kb.root_file_id, title)
     await kb_service.retitle_knowledge_base(id, title)
     return ResponseCode.OK.to_response()
 
