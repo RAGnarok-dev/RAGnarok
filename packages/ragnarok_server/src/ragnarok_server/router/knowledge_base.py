@@ -27,7 +27,7 @@ class KnowledgeBaseCreateRequest(BaseModel):
     title: str
     description: str
     embedding_model_id: int
-    created_by: str
+    created_by: str = "user-system"
 
 
 @router.post("/create")
@@ -71,7 +71,7 @@ async def retitle_knowledge_base(id: int, title: str) -> Response:
 
 
 @router.get("/list")
-async def list_knowledge_base(created_by: str) -> Response[ListResponseData[KnowledgeBaseResponse]]:
+async def list_knowledge_base(created_by: str = "user-system") -> Response[ListResponseData[KnowledgeBaseResponse]]:
     # TODO: verify the created_by
     kbs = await kb_service.get_knowledge_base_list_by_creator(created_by)
     return ResponseCode.OK.to_response(
