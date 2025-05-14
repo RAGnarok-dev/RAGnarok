@@ -51,45 +51,66 @@ async def create_knowledge_base(request: KnowledgeBaseCreateRequest) -> Response
     return ResponseCode.OK.to_response(data=KnowledgeBaseResponse.model_validate(kb))
 
 
+class KnowledgeBaseRemoveRequest(BaseModel):
+    id: int
+
+
 @router.delete("/remove")
-async def remove_knowledge_base(id: int) -> Response:
+async def remove_knowledge_base(request: KnowledgeBaseRemoveRequest) -> Response:
     # TODO: verify the id
-    await kb_service.remove_knowledge_base(id)
+    await kb_service.remove_knowledge_base(request.id)
     return ResponseCode.OK.to_response()
+
+
+class KnowledgeBaseRetitleRequest(BaseModel):
+    id: int
+    title: str
 
 
 @router.patch("/retitle")
-async def retitle_knowledge_base(id: int, title: str) -> Response:
-    kb = await kb_service.get_knowledge_base_by_id(id)
+async def retitle_knowledge_base(request: KnowledgeBaseRetitleRequest) -> Response:
+    kb = await kb_service.get_knowledge_base_by_id(request.id)
     if kb is None:
         raise HTTPException(status_code=400, content="Knowledge base not found")
-    if not await kb_service.validate_title(title, kb.created_by):
+    if not await kb_service.validate_title(request.title, kb.created_by):
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
-    await file_service.rename_root_file(kb.root_file_id, title)
-    await kb_service.retitle_knowledge_base(id, title)
+    await file_service.rename_root_file(kb.root_file_id, request.title)
+    await kb_service.retitle_knowledge_base(request.id, request.title)
     return ResponseCode.OK.to_response()
 
 
+class KnowledgeBaseListRequest(BaseModel):
+    created_by: str = "user-system"
+
+
 @router.get("/list")
-async def list_knowledge_base(created_by: str = "user-system") -> Response[ListResponseData[KnowledgeBaseResponse]]:
+async def list_knowledge_base(request: KnowledgeBaseListRequest) -> Response[ListResponseData[KnowledgeBaseResponse]]:
     # TODO: verify the created_by
-    kbs = await kb_service.get_knowledge_base_list_by_creator(created_by)
+    kbs = await kb_service.get_knowledge_base_list_by_creator(request.created_by)
     return ResponseCode.OK.to_response(
         data=ListResponseData(count=len(kbs), items=[KnowledgeBaseResponse.model_validate(kb) for kb in kbs])
     )
 
 
+class KnowledgeBaseGetRequest(BaseModel):
+    id: int
+
+
 @router.get("/get")
-async def get_knowledge_base(id: int) -> Response[KnowledgeBaseResponse]:
+async def get_knowledge_base(request: KnowledgeBaseGetRequest) -> Response[KnowledgeBaseResponse]:
     # TODO: verify the id
-    kb = await kb_service.get_knowledge_base_by_id(id)
+    kb = await kb_service.get_knowledge_base_by_id(request.id)
     return ResponseCode.OK.to_response(data=KnowledgeBaseResponse.model_validate(kb))
 
 
+class KnowledgeBaseGetRootFileRequest(BaseModel):
+    id: int
+
+
 @router.get("/get_root_file")
-async def get_root_file(id: int) -> Response[FileResponse]:
+async def get_root_file(request: KnowledgeBaseGetRootFileRequest) -> Response[FileResponse]:
     # TODO: verify the id
-    kb = await kb_service.get_knowledge_base_by_id(id)
+    kb = await kb_service.get_knowledge_base_by_id(request.id)
     root_file_id = kb.root_file_id
     file = await file_service.get_file_by_id(root_file_id)
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(file))
