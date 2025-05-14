@@ -21,7 +21,7 @@ class KnowledgeBaseRepository:
             return knowledge_base
 
     @classmethod
-    async def fix_kb_root_file_id(cls, kb_id: int, root_file_id: int) -> bool:
+    async def fix_kb_root_file_id(cls, kb_id: int, root_file_id: str) -> bool:
         async with get_async_session() as session:
             stmt = update(KnowledgeBase).where(KnowledgeBase.id == kb_id).values(root_file_id=root_file_id)
             result = await session.execute(stmt)

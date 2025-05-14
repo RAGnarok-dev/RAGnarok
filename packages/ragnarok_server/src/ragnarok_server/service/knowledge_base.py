@@ -23,12 +23,12 @@ class KnowledgeBaseService:
             title=title,
             description=description,
             embedding_model_id=embedding_model_id,
-            root_file_id=0,
+            root_file_id="",
             created_by=created_by,
         )
         return await self.kb_repo.create_knowledge_base(kb)
 
-    async def fix_kb_root_file_id(self, kb_id: int, root_file_id: int) -> bool:
+    async def fix_kb_root_file_id(self, kb_id: int, root_file_id: str) -> bool:
         return await self.kb_repo.fix_kb_root_file_id(kb_id, root_file_id)
 
     async def get_knowledge_base_by_id(self, id: int) -> KnowledgeBase:

@@ -3,7 +3,7 @@ from enum import Enum
 from ragnarok_toolkit.common import PermissionType, PrincipalType
 from sqlalchemy import Boolean
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -88,7 +88,7 @@ class KnowledgeBase(Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     embedding_model_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    root_file_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    root_file_id: Mapped[str] = mapped_column(String, nullable=False)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
@@ -145,7 +145,7 @@ class File(Base):
     """
     File: represents a file or folder in the system.
     Fields:
-      - id: PK
+      - id: PK (format: 'file-{id}')
       - name: file name
       - type: file type ('folder' or 'file')
       - size: file size
@@ -157,7 +157,9 @@ class File(Base):
 
     __tablename__ = "files"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, server_default=text("concat('file-', nextval('file_id_seq'))")
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     type: Mapped[str] = mapped_column(String, nullable=False)
@@ -166,7 +168,7 @@ class File(Base):
     created_by: Mapped[str] = mapped_column(String, nullable=False)
     # chunk_count: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
+    parent_id: Mapped[str] = mapped_column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
 
     knowledge_base_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("knowledge_bases.id", ondelete="CASCADE"), nullable=False
