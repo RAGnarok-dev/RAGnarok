@@ -51,22 +51,31 @@ async def create_knowledge_base(request: KnowledgeBaseCreateRequest) -> Response
     return ResponseCode.OK.to_response(data=KnowledgeBaseResponse.model_validate(kb))
 
 
+class KnowledgeBaseRemoveRequest(BaseModel):
+    id: int
+
+
 @router.delete("/remove")
-async def remove_knowledge_base(id: int) -> Response:
+async def remove_knowledge_base(request: KnowledgeBaseRemoveRequest) -> Response:
     # TODO: verify the id
-    await kb_service.remove_knowledge_base(id)
+    await kb_service.remove_knowledge_base(request.id)
     return ResponseCode.OK.to_response()
 
 
+class KnowledgeBaseRetitleRequest(BaseModel):
+    id: int
+    title: str
+
+
 @router.patch("/retitle")
-async def retitle_knowledge_base(id: int, title: str) -> Response:
-    kb = await kb_service.get_knowledge_base_by_id(id)
+async def retitle_knowledge_base(request: KnowledgeBaseRetitleRequest) -> Response:
+    kb = await kb_service.get_knowledge_base_by_id(request.id)
     if kb is None:
         raise HTTPException(status_code=400, content="Knowledge base not found")
-    if not await kb_service.validate_title(title, kb.created_by):
+    if not await kb_service.validate_title(request.title, kb.created_by):
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
-    await file_service.rename_file(kb.root_file_id, title)
-    await kb_service.retitle_knowledge_base(id, title)
+    await file_service.rename_root_file(kb.root_file_id, request.title)
+    await kb_service.retitle_knowledge_base(request.id, request.title)
     return ResponseCode.OK.to_response()
 
 

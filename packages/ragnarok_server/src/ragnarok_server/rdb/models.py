@@ -3,7 +3,7 @@ from enum import Enum
 from ragnarok_toolkit.common import PermissionType, PrincipalType
 from sqlalchemy import Boolean
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint, text
+from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 # from sqlalchemy import Sequnce
 
@@ -157,9 +157,8 @@ class File(Base):
 
     __tablename__ = "files"
 
-    id: Mapped[str] = mapped_column(
-        String, Sequnce('file_id_seq'), primary_key=True
-    )
+
+    id: Mapped[str] = mapped_column(String, Sequence("file_id_seq"), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     type: Mapped[str] = mapped_column(String, nullable=False)

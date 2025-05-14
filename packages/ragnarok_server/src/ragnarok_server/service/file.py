@@ -120,6 +120,9 @@ class FileService:
         await self.fix_file_location(file_id)
         return True
 
+    async def rename_root_file(self, file_id: str, new_name: str) -> bool:
+        return await self.file_repo.rename_file(file_id, new_name)
+
     async def get_parent_id(self, file_id: str) -> Optional[str]:
         return await self.file_repo.get_parent_id(file_id)
 
