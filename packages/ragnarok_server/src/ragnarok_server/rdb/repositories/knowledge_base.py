@@ -1,3 +1,4 @@
+# /ragnarok_server/rdb/repositories/knowledge_base.py
 from typing import List
 
 from ragnarok_server.rdb.engine import get_async_session
@@ -8,9 +9,13 @@ from sqlalchemy import delete, select, update
 class KnowledgeBaseRepository:
 
     @classmethod
-    async def validate_title(cls, title: str, created_by: str) -> bool:
+    async def validate_title(cls, title: str, principal_id: int, principal_type: str) -> bool:
         async with get_async_session() as session:
-            stmt = select(KnowledgeBase).where(KnowledgeBase.title == title, KnowledgeBase.created_by == created_by)
+            stmt = select(KnowledgeBase).where(
+                KnowledgeBase.title == title,
+                KnowledgeBase.principal_id == principal_id,
+                KnowledgeBase.principal_type == principal_type,
+            )
             result = await session.execute(stmt)
             return result.scalar_one_or_none() is None
 
@@ -42,9 +47,11 @@ class KnowledgeBaseRepository:
             return result.rowcount > 0
 
     @classmethod
-    async def get_knowledge_base_list_by_creator(cls, created_by: str) -> List[KnowledgeBase]:
+    async def get_knowledge_base_list_by_creator(cls, principal_id: int, principal_type: str) -> List[KnowledgeBase]:
         async with get_async_session() as session:
-            stmt = select(KnowledgeBase).where(KnowledgeBase.created_by == created_by)
+            stmt = select(KnowledgeBase).where(
+                KnowledgeBase.principal_id == principal_id, KnowledgeBase.principal_type == principal_type
+            )
             result = await session.execute(stmt)
             return result.scalars().all()
 
