@@ -1,9 +1,9 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from fastapi import APIRouter
-from pydantic import BaseModel
-from ragnarok_server.rdb.models import Pipeline
 
+from pydantic import BaseModel,EmailStr
+from ragnarok_server.rdb.models import Pipeline
 
 class CustomAPIRouter(APIRouter):
     """
@@ -34,6 +34,67 @@ class ComponentDetailModel(BaseModel):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ComponentDetailModel":
         return cls(name=data["name"], is_official=data["is_official"], detail=data["detail"])
+
+
+class UserRegisterRequestModel(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+
+
+class UserRegisterResponseModel(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    is_active: bool
+
+
+class UserLoginRequestModel(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: str
+
+
+class UserLoginResponseModel(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    is_active: bool
+    access_token: str
+    token_type: str
+
+
+class UserInfoResponseModel(BaseModel):
+    username: str
+    id: int
+    avatar: str
+
+class TenantRegisterRequestModel(BaseModel):
+    email: EmailStr
+    tenantname: str
+    password: str
+
+
+class TenantRegisterResponseModel(BaseModel):
+    id: int
+    tenantname: str
+    email: EmailStr
+    is_active: bool
+
+
+class TenantLoginRequestModel(BaseModel):
+    tenantname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: str
+
+
+class TenantLoginResponseModel(BaseModel):
+    id: int
+    tenantname: str
+    email: EmailStr
+    is_active: bool
+    access_token: str
+    token_type: str
 
 
 class PipelineDetailModel(BaseModel):

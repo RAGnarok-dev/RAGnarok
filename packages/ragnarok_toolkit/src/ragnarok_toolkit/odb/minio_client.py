@@ -24,7 +24,6 @@ class MinioClient:
     @classmethod
     async def create_bucket(cls, bucket_name: str):
         async with await cls._create_client() as minio_client:
-
             existing_buckets = await minio_client.list_buckets()
             bucket_names = [bucket["Name"] for bucket in existing_buckets["Buckets"]]
 

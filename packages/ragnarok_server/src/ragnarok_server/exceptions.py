@@ -12,19 +12,34 @@ class CustomRuntimeError(RuntimeError):
         super().__init__(message)
 
 
-class InternalServerError(CustomRuntimeError): ...
+class CustomRuntimeError(RuntimeError):
+    def __init__(self, message: str = "Internal server error"):
+        super().__init__(message)
 
 
-class NoResultFoundError(CustomRuntimeError): ...
+class InternalServerError(CustomRuntimeError):
+    def __init__(self, message: str = "Internal server error"):
+        super().__init__(message)
 
 
-class DuplicateEntryError(CustomRuntimeError): ...
+class NoResultFoundError(CustomRuntimeError):
+    def __init__(self, message: str = "No such resource"):
+        super().__init__(message)
 
 
-class InvalidArgsError(CustomRuntimeError): ...
+class DuplicateEntryError(CustomRuntimeError):
+    def __init__(self, message: str = "Duplicate resource"):
+        super().__init__(message)
 
 
-class AccessDeniedError(CustomRuntimeError): ...
+class InvalidArgsError(CustomRuntimeError):
+    def __init__(self, message: str = "Invalid arguments"):
+        super().__init__(message)
+
+
+class AccessDeniedError(CustomRuntimeError):
+    def __init__(self, message: str = "Access denied"):
+        super().__init__(message)
 
 
 class HTTPException(Exception):
