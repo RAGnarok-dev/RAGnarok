@@ -1,14 +1,15 @@
 import os
+import sys
 
 import pytest
 from dotenv import load_dotenv
-from ragnarok_toolkit.llm_request_component import (
+
+from ragnarok_core.components.official_components.llm_request_component import (
     LLMIntentRecognitionComponent,
     LLMRequestComponent,
 )
 
 load_dotenv()
-
 
 @pytest.mark.asyncio
 async def test_llm():
@@ -17,7 +18,8 @@ async def test_llm():
 
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("base_url")
-    model = "gpt-4o"
+    print(base_url)
+    model = "gemini-2.5-flash-preview-04-17"
     question = "What's the weather today?"
     temperature = 0.6
     top_p = 0.9
