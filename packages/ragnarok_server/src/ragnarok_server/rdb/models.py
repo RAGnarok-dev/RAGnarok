@@ -1,9 +1,9 @@
 from enum import Enum
 
 from ragnarok_toolkit.common import PermissionType, PrincipalType
-from sqlalchemy import Boolean
+from sqlalchemy import JSON, Boolean, DateTime
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -91,6 +91,31 @@ class KnowledgeBase(Base):
     root_file_id: Mapped[str] = mapped_column(String, nullable=False)
 
     created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
+
+
+class LLMSession(Base):
+    """
+    LLMSession: stores the LLM conversation history for a user or tenant.
+    Fields:
+      - id: PK
+      - title: optional title for the session
+      - created_by: 'user-{user_id}' or 'tenant-{tenant_id}'
+      - history: conversation history stored as dict (JSON)
+      - created_at: timestamp when session was created
+      - updated_at: timestamp when session was last updated
+    """
+
+    __tablename__ = "llm_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    history: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now(), nullable=False
+    )
 
 
 class Permission(Base):

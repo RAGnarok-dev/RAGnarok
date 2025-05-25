@@ -1,9 +1,10 @@
 import asyncio
 import json
-from typing import Any, Dict, List, Tuple
-import site
+from typing import Any, Dict, List, Optional, Tuple
 
 from openai import AsyncOpenAI
+from ragnarok_server.rdb.models import LLMSession
+from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -47,6 +48,16 @@ class LLMRequestComponent(RagnarokComponent):
 
         return (
             ComponentInputTypeOption(
+                name="creator_id",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="llm_session_id",
+                allowed_types={ComponentIOType.INT},
+                required=False,
+            ),
+            ComponentInputTypeOption(
                 name="user_question",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
@@ -54,11 +65,6 @@ class LLMRequestComponent(RagnarokComponent):
             ComponentInputTypeOption(
                 name="content_list",
                 allowed_types={ComponentIOType.STRING_LIST},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="user_history",
-                allowed_types={ComponentIOType.DICT},
                 required=True,
             ),
             ComponentInputTypeOption(
@@ -86,56 +92,75 @@ class LLMRequestComponent(RagnarokComponent):
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
             ),
-            
         )
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
         """the options of all the output value"""
-        return (ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),)
+        return (
+            ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),
+            ComponentOutputTypeOption(name="llm_session_id", type=ComponentIOType.INT),
+        )
 
     @classmethod
     async def execute(
         cls,
+        creator_id: str,
+        llm_session_id: Optional[int],
         user_question: str,
         content_list: List[str],
-        user_history: dict,
         model_name: str,
         api_key: str,
         base_url: str,
         temperature: float,
-        top_p: float, 
+        top_p: float,
     ) -> Dict[str, Any]:
         """
         execute the async component function
         """
+        if llm_session_id is None:
+            llm_session = LLMSession(
+                title="untitled session",
+                created_by=creator_id,
+                history={"messages": []},
+            )
+            llm_session = await LLMSessionRepository.create_session(llm_session)
+            llm_session_id = llm_session.id
+        else:
+            llm_session = await LLMSessionRepository.get_session_by_id(llm_session_id)
+
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        messages = [
-            {
-                "role": "system",
-                "content": "you are a helpful AI assistant",
-            },
-        ]
-        # add history
-        for entry in user_history.get("messages", []):
-            messages.append({
-                "role": entry["role"],
-                "content": entry["content"]
-            })
-        
+
+        old_messages = llm_session.history["messages"]
+        new_messages = []
+
+        if len(old_messages) == 0:
+            new_messages.append(
+                {
+                    "role": "system",
+                    "content": "you are a helpful AI assistant",
+                }
+            )
         # add retrieved information
         if content_list:
             knowledge_text = "\n\n".join(content_list)
-            messages.append({
-                "role": "user",
-                "content": f"Here is some background information for your reference:\n{knowledge_text}"
-            })
-
+            new_messages.append(
+                {
+                    "role": "user",
+                    "content": f"Here is some background information for your reference:\n{knowledge_text}",
+                }
+            )
         # add question
-        messages.append({
-            "role": "user",
-            "content": f"Based on the history and retrieved information above, strictly use the same language to answer the question: {user_question}",
-        },)
+        new_messages.append(
+            {
+                "role": "user",
+                "content": f"Based on the history and retrieved information above, \
+                strictly use the same language to answer the question: {user_question}",
+            },
+        )
+
+        messages = old_messages
+        messages.extend(new_messages)
 
         while True:
             try:
@@ -174,7 +199,15 @@ class LLMRequestComponent(RagnarokComponent):
                 print(f"Retrying call {model_name}", e)
                 await asyncio.sleep(1)
 
-        return {"out": response_json.get("answer")}
+        answer = response_json.get("answer")
+        new_messages.append(
+            {
+                "role": "system",
+                "content": answer,
+            }
+        )
+        await LLMSessionRepository.update_dialog_history(llm_session_id, {"messages": new_messages})
+        return {"out": answer, "llm_session_id": llm_session_id}
 
     def __new__(cls, *args, **kwargs):
         raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
