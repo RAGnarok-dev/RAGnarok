@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple, Type
+from typing import Optional, Tuple, Type, TypedDict
 
 from ragnarok_toolkit.component import RagnarokComponent
 
@@ -16,12 +16,17 @@ class PipelineNode:
         to_node_id: str
         to_node_input_name: str
 
+    class NodePosition(TypedDict):
+        x: float
+        y: float
+
     def __init__(
         self,
         *,
         node_id: str,
         component: Type[RagnarokComponent],
         forward_node_info: Tuple[NodeConnection, ...],
+        pos: NodePosition,
         output_name: Optional[str] = None,
     ) -> None:
         # each node in one pipeline has a unique id
@@ -32,6 +37,8 @@ class PipelineNode:
         self.output_name = output_name
         # trigger nodes
         self.forward_node_info = forward_node_info
+        # frontend use
+        self.pos = pos
         # input data, originally None
         self.input_data = {
             param: None for param in [input_option["name"] for input_option in component.input_options()]
