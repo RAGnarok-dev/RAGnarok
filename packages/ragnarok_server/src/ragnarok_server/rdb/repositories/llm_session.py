@@ -53,7 +53,7 @@ class LLMSessionRepository:
             return result.scalars().all()
 
     @classmethod
-    async def delete_all_session(cls) -> bool:
+    async def delete_all_sessions(cls) -> bool:
         async with get_async_session() as session:
             stmt = delete(LLMSession)
             result = await session.execute(stmt)

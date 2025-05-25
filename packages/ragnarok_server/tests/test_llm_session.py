@@ -16,7 +16,7 @@ async def test_llm_session():
         assert user.id != 0
     print(user, user.id)
 
-    await LLMSessionRepository.delete_all_session()
+    await LLMSessionRepository.delete_all_sessions()
     llm_sessions = await LLMSessionRepository.get_sessions_by_creator(f"user-{user.id}")
     if len(llm_sessions) == 0:
         print("creating new session")
