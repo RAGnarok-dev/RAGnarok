@@ -51,4 +51,5 @@ async def ping():
 
 def run_server():
     asyncio.run(init_rdb())
+    print("rdb started")
     uvicorn.run(app, host="0.0.0.0", port=int(config.SERVER_PORT))
