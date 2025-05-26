@@ -11,6 +11,7 @@ class ComponentIOType(StrEnum):
     FLOAT = "FLOAT"
     LIST_STRING = "LIST_STRING"
     LIST_LIST_FLOAT = "LIST_LIST_FLOAT"
+    BYTES = "BYTES"
 
     @property
     def python_type(self):
@@ -23,6 +24,7 @@ TYPE_MAPPING = {
     ComponentIOType.STRING: str,
     ComponentIOType.LIST_STRING: List[str],
     ComponentIOType.LIST_LIST_FLOAT: List[List[float]],
+    ComponentIOType.BYTES: bytes,
 }
 
 

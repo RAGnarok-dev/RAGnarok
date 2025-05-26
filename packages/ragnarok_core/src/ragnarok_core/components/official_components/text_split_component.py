@@ -1,8 +1,6 @@
 import re
 import os
 import numpy as np
-import pdfplumber
-from sentence_transformers import SentenceTransformer
 from typing import Any, Dict, Optional, Tuple, List
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
@@ -10,10 +8,10 @@ from ragnarok_toolkit.component import (
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-import requests
+from langchain import CharacterTextSpliter, RecursiveCharacterTextSplitter
+import httpx
+import asyncio
 
-class UnsupportedFileTypeError(Exception):
-    """When the file type is not in the supported list, this exception is thrown."""
 
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
@@ -22,7 +20,17 @@ class TextSplitComponent(RagnarokComponent):
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="pdf_path",
+                name="file_type",
+                allowed_types={ComponentIOType.STRING},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="file_byte",
+                allowed_types={ComponentIOType.BYTES},
+                required=True,
+            ),
+            ComponentInputTypeOption(
+                name="split_type",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
             ),
@@ -37,14 +45,61 @@ class TextSplitComponent(RagnarokComponent):
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
         return (
             ComponentOutputTypeOption(name="text_chunks", type=ComponentIOType.LIST_STRING),
+            ComponentOutputTypeOption(name="text", type=ComponentIOType.LIST_STRING),
         )
 
 
     @classmethod
-    def execute(cls, pdf_path: str) -> Dict[str, List[str]]:
-        """Main execution method for processing the PDF and splitting text."""
-        text = cls.extract_text_from_pdf(pdf_path)
+    def execute(cls, file_type: str, file_byte: bytes, split_type: str) -> Dict[str, List[str]]:
+        """Main execution method for processing the text content and splitting text."""
+        file_type = file_type.lower()
+        text = cls.extract_text(file_type, file_byte)
+        chunks = []
+        if split_type == "character_split" :
+            """Split the file by chunk size"""""
+            chunks = cls.common_split(text)
+        elif split_type == "recursive_split" :
+            chunks = cls.recursive_split(text)
+        elif split_type == "semantic_split" :
+            chunks = cls.semantic_splitting(text)
+        else :
+            chunks = []
 
+        return {"text_chunks": chunks}
+
+
+    @staticmethod
+    def extract_text(file_type: str, file_byte: bytes) -> str:
+        text = ""
+        if file_type == "txt" :
+            text = file_byte.decode("utf-8")
+        elif file_type == "pdf" :
+            text = "pdf"
+        elif file_type == "image" :
+            text = "image"
+        return text
+
+    @staticmethod
+    def common_split(text: str) -> List[str]:
+        text_spliter = CharacterTextSpliter(
+            chunk_size = 512,
+            chunk_overlap = 128,
+            separators = ["\n\n", "\n", "。", "！", "？", ".", "!", "?"]
+        )
+        return text_spliter(text)
+
+    @staticmethod
+    def recursive_split(text: str) -> List[str]:
+        text_spliter = RecursiveCharacterTextSplitter(
+            chunk_size=512,
+            chunk_overlap=128,
+            separators=["\n\n", "\n", "。", "！", "？", ".", "!", "?"]
+        )
+        return text_spliter(text)
+
+    @classmethod
+    def semantic_splitting(cls, text: str) -> List[str]:
+        chunks = []
         sentences = cls.split_sentences(text)
 
         sentences = cls.combine_sentences(sentences)
@@ -55,20 +110,7 @@ class TextSplitComponent(RagnarokComponent):
 
         chunks = cls.chunk_sentences(sentences)
 
-        return {"text_chunks": chunks}
-
-    class UnsupportedFileTypeError(Exception):
-        """When the file type is not in the supported list, this exception is thrown."""
-
-    @staticmethod
-    def extract_text_from_pdf(pdf_path: str) -> str:
-        text = ""
-        with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text
-        return text
+        return chunks
 
     @staticmethod
     def split_sentences(text: str) -> List[Dict]:
@@ -93,15 +135,25 @@ class TextSplitComponent(RagnarokComponent):
     @staticmethod
     def embed_sentences(sentences: List[Dict]) -> List[Dict]:
         combined_texts = [x['combined_sentence'] for x in sentences]
-        API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+
+        API_URL = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
+        API_KEY = "sk-7ce272f166b84698b4a397b681065c7c"
         headers = {
-            "Authorization": "Bearer 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"
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {API_KEY}"
+        }
+
+        payload = {
+            "model": "text-embedding-v1",
+            "input": combined_texts
         }
 
         try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": combined_texts})
-            response.raise_for_status()
-            embeddings = response.json()
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(API_URL, headers=headers, json=payload)
+                response.raise_for_status()
+                res_data = response.json()
+                embeddings = [item["embedding"] for item in res_data["output"]["embeddings"]]
         except Exception as e:
             print("获取嵌入失败:", e)
             return []
@@ -143,24 +195,7 @@ class TextSplitComponent(RagnarokComponent):
             chunks.append("".join(current_chunk))
 
         return chunks
-    
-    """Identifying file types through file suffixes"""
-    @staticmethod
-    def get_file_type(file_path : str) -> str:
-        _, ext = os.path.splitext(file_path)
-        ext = ext.lower()
-        if ext == '.md':
-            return "markdown"
-        elif ext == '.pdf':
-            return "pdf"
-        elif ext == '.doc' or ext == '.docx':
-            return "word"
-        else :
-            raise UnsupportedFileTypeError(f"Unsupported file type: {ext}")
-    
-    @staticmethod
-    def pdf2md(pdf_path : str) -> str:
-        """translate pdf to md by Mineru"""
+
         
         
     
