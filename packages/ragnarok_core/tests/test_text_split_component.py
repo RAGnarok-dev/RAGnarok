@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from ragnarok_core.components.official_components.text_split_component import TextSplitComponent
 
 def test_text_split_component():
@@ -8,6 +9,7 @@ def test_text_split_component():
         test_file_byte = f.read()
     # Execute the text splitting component
     output = TextSplitComponent.execute("txt", test_file_byte, "semantic_split")
+    #output = asyncio.run(TextSplitComponent.execute("txt", test_file_byte, "semantic_split"))
     # Assertions to check if the output is as expected
     assert isinstance(output, dict), "The output should be a dictionary"
     assert all(isinstance(chunk, str) for chunk in output), "All elements in the output list should be strings"

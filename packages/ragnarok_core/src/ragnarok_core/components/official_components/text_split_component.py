@@ -3,13 +3,14 @@ import re
 import os
 import numpy as np
 from typing import Any, Dict, Optional, Tuple, List
+from openai import OpenAI
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-from langchain import CharacterTextSpliter, RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 import httpx
 import asyncio
 
@@ -86,7 +87,7 @@ class TextSplitComponent(RagnarokComponent):
 
     @staticmethod
     def common_split(text: str) -> List[str]:
-        text_spliter = CharacterTextSpliter(
+        text_spliter = CharacterTextSplitter(
             chunk_size = 512,
             chunk_overlap = 128,
             separators = ["\n\n", "\n", "。", "！", "？", ".", "!", "?"]
@@ -108,7 +109,7 @@ class TextSplitComponent(RagnarokComponent):
         sentences = cls.split_sentences(text)
 
         sentences = cls.combine_sentences(sentences)
-
+        print("adfadfadsf\n")
         sentences = cls.embed_sentences(sentences)
 
         sentences = cls.compute_distances(sentences)
@@ -141,31 +142,33 @@ class TextSplitComponent(RagnarokComponent):
     def embed_sentences(sentences: List[Dict]) -> List[Dict]:
         combined_texts = [x['combined_sentence'] for x in sentences]
 
-        API_URL = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
+        BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         API_KEY = "sk-7ce272f166b84698b4a397b681065c7c"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_KEY}"
-        }
 
-        payload = {
-            "model": "text-embedding-v1",
-            "input": combined_texts
-        }
+        client = OpenAI(
+            api_key=API_KEY,
+            base_url=BASE_URL
+        )
 
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(API_URL, headers=headers, json=payload)
-                response.raise_for_status()
-                res_data = response.json()
-                embeddings = [item["embedding"] for item in res_data["output"]["embeddings"]]
-        except Exception as e:
-            print("获取嵌入失败:", e)
-            return []
+        all_embeddings = []
 
+        batch_size = 25
+        for i in range(0, len(combined_texts), batch_size):
+            batch_texts = combined_texts[i:i + batch_size]
+
+            response = client.embeddings.create(
+                model="text-embedding-v1",
+                input=batch_texts,
+                #dimensions=1024,
+                encoding_format="float"
+            )
+
+            batch_embeddings = [item.embedding for item in response.data]
+            all_embeddings.extend(batch_embeddings)
+
+        # 回写嵌入到每个 sentence
         for i in range(len(sentences)):
-            sentences[i]['combined_sentence_embedding'] = embeddings[i]
-
+            sentences[i]['combined_sentence_embedding'] = all_embeddings[i]
 
         return sentences
 
@@ -189,7 +192,7 @@ class TextSplitComponent(RagnarokComponent):
         return sentences
 
     @staticmethod
-    def chunk_sentences(sentences: List[Dict], threshold: float = 0.15) -> List[str]:
+    def chunk_sentences(sentences: List[Dict], threshold: float = 0.48) -> List[str]:
         chunks = []
         current_chunk = [sentences[0]['sentence']]
         for i in range(1, len(sentences)):
