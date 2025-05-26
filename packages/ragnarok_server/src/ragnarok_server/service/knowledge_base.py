@@ -13,18 +13,19 @@ class KnowledgeBaseService:
     def __init__(self) -> None:
         self.kb_repo = KnowledgeBaseRepository()
 
-    async def validate_title(self, title: str, created_by: str) -> bool:
-        return await self.kb_repo.validate_title(title, created_by)
+    async def validate_title(self, title: str, principal_id: int, principal_type: str) -> bool:
+        return await self.kb_repo.validate_title(title, principal_id, principal_type)
 
     async def create_knowledge_base(
-        self, title: str, description: str, embedding_model_id: int, created_by: str
+        self, title: str, description: str, embedding_model_id: int, principal_id: int, principal_type: str
     ) -> KnowledgeBase:
         kb = KnowledgeBase(
             title=title,
             description=description,
             embedding_model_id=embedding_model_id,
             root_file_id="",
-            created_by=created_by,
+            principal_id=principal_id,
+            principal_type=principal_type,
         )
         return await self.kb_repo.create_knowledge_base(kb)
 
@@ -34,8 +35,8 @@ class KnowledgeBaseService:
     async def get_knowledge_base_by_id(self, id: int) -> KnowledgeBase:
         return await self.kb_repo.get_knowledge_base_by_id(id)
 
-    async def get_knowledge_base_list_by_creator(self, created_by: str) -> List[KnowledgeBase]:
-        return await self.kb_repo.get_knowledge_base_list_by_creator(created_by)
+    async def get_knowledge_base_list_by_creator(self, principal_id: int, principal_type: str) -> List[KnowledgeBase]:
+        return await self.kb_repo.get_knowledge_base_list_by_creator(principal_id, principal_type)
 
     async def remove_knowledge_base(self, id: int) -> bool:
         return await self.kb_repo.remove_knowledge_base(id)
