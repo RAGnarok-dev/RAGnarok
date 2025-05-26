@@ -1,6 +1,6 @@
-import requests
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, List, Tuple
 
+import requests
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -8,47 +8,43 @@ from ragnarok_toolkit.component import (
     RagnarokComponent,
 )
 
+
 class EmbeddingComponent(RagnarokComponent):
     DESCRIPTION: str = "embedding"
     ENABLE_HINT_CHECK: bool = True
 
-    HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
-    HEADERS = {
-        "Authorization": "Bearer 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"
-    }
+    HF_API_URL = (
+        "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+    )
+    HEADERS = {"Authorization": "Bearer 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"}
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="sentences",
-                allowed_types={ComponentIOType.LIST_STRING},
+                name="text_chunks",
+                allowed_types={ComponentIOType.STRING_LIST},
                 required=True,
             ),
         )
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (
-            ComponentOutputTypeOption(name="embeddings", type=ComponentIOType.LIST_LIST_FLOAT),
-        )
+        return (ComponentOutputTypeOption(name="vectors", type=ComponentIOType.FLOAT_LIST_LIST),)
 
     @classmethod
-    def execute(cls, sentences: List[str]) -> Dict[str, Any]:
+    def execute(cls, text_chunks: List[str]) -> Dict[str, Any]:
 
-        data = {"inputs": sentences}
+        data = {"inputs": text_chunks}
 
         try:
             response = requests.post(cls.HF_API_URL, headers=cls.HEADERS, json=data)
             if response.status_code != 200:
                 return {
-                    "embeddings": [[-1.0]],  # 或者你可以选择抛出异常
-                    "error": f"HuggingFace API error: {response.status_code} - {response.text}"
+                    "vectors": [[-1.0]],  # 或者你可以选择抛出异常
+                    "error": f"HuggingFace API error: {response.status_code} - {response.text}",
                 }
-            embeddings = response.json()
-            return {"embeddings": embeddings}
+            vectors = response.json()
+            return {"vectors": vectors}
         except Exception as e:
-            return {
-                "embeddings": [[-1.0]],
-                "error": str(e)
-            }
+            return {"vectors": [[-1.0]], "error": str(e)}

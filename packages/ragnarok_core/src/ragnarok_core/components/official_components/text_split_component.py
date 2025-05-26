@@ -1,3 +1,4 @@
+import os
 import re
 import os
 import numpy as np
@@ -12,10 +13,14 @@ from langchain import CharacterTextSpliter, RecursiveCharacterTextSplitter
 import httpx
 import asyncio
 
+class UnsupportedFileTypeError(Exception):
+    """When the file type is not in the supported list, this exception is thrown."""
+
 
 class TextSplitComponent(RagnarokComponent):
     DESCRIPTION: str = "txt_split_component"
     ENABLE_HINT_CHECK: bool = True
+
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
@@ -161,6 +166,7 @@ class TextSplitComponent(RagnarokComponent):
         for i in range(len(sentences)):
             sentences[i]['combined_sentence_embedding'] = embeddings[i]
 
+
         return sentences
 
     @staticmethod
@@ -193,11 +199,7 @@ class TextSplitComponent(RagnarokComponent):
             current_chunk.append(sentences[i]['sentence'])
         if current_chunk:
             chunks.append("".join(current_chunk))
-
         return chunks
 
-        
-        
-    
 
 

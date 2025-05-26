@@ -11,6 +11,8 @@ from pydantic import BaseModel
 
 from ragnarok_toolkit.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from ragnarok_server.rdb.repositories.user import UserRepository
+from ragnarok_server.rdb.models import User
+from ragnarok_server.exceptions import NoResultFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ credentials_exception = HTTPException(
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"},
 )
+
 
 # todo: tenant need a similar method
 @router.post("auth.py/token", response_model=Token)
@@ -98,3 +101,30 @@ async def decode_access_token(token: str = Depends(oauth2_scheme)) -> TokenData:
     except JWTError as e:
         logger.warning("JWT decode error", exc_info=e)
         raise credentials_exception
+
+
+# New get_current_user function
+async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        user_repo: UserRepository = Depends(),  # Inject the UserRepository
+) -> User:
+    """
+    Get the current user from the decoded JWT token.
+    This function is used as a dependency in routes that need the current authenticated user.
+    """
+    token_data = await decode_access_token(token)  # Decode the token
+    user = await user_repo.get_user_by_id(token_data.principal_id)  # Get the user from the database
+
+    if not user:
+        raise NoResultFoundError  # If no user found, raise an exception
+
+    return user  # Return the user object
+
+
+# # Usage in a route
+# @router.get("/users/me", response_model=User)
+# async def read_users_me(current_user: dict = Depends(get_current_user)):
+#     """
+#     Retrieve the current logged-in user.
+#     """
+#     return current_user

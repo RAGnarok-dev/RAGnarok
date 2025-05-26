@@ -1,9 +1,10 @@
 import asyncio
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List, Literal, Tuple
 
+from ragnarok_core.components import component_manager
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
 
 
@@ -16,6 +17,11 @@ class PipelineExecutionInfo:
 
     def __post_init__(self):
         self.timestamp = datetime.now()
+
+    def to_json(self) -> str:
+        dict_data = asdict(self)
+        dict_data["timestamp"] = self.timestamp.isoformat()
+        return json.dumps(dict_data)
 
 
 class PipelineEntity:
@@ -51,6 +57,7 @@ class PipelineEntity:
             self.node_map[node_id].input_data[node_input_name] = actual_input_value
 
         # 2. run beginning task
+        # TODO if begin_nodes is empty, please raise error
         for node in self.begin_nodes:
             asyncio.create_task(self.run_node_async(node))
 
@@ -101,14 +108,50 @@ class PipelineEntity:
     @classmethod
     def from_json_str(cls, json_str: str) -> "PipelineEntity":
         """instantiate a pipeline entity from a json format string"""
-        pass
+        data = json.loads(json_str)
+        if not all(key in data for key in ["nodes", "connections", "inject_input_mapping"]):
+            raise ValueError("Invalid JSON format: missing required fields")
+
+        # Build node map
+        node_map = {}
+        for node_data in data["nodes"]:
+            component = component_manager.get_component_by_name(node_data["component"]).component_class
+            if component is None:
+                raise ValueError(f"Component {node_data['component']} not found")
+
+            forward_connections = []
+            for conn in data["connections"]:
+                if conn["from_node_id"] == node_data["node_id"]:
+                    forward_connections.append(
+                        PipelineNode.NodeConnection(
+                            from_node_id=conn["from_node_id"],
+                            from_node_output_name=conn["from_output_name"],
+                            to_node_id=conn["to_node_id"],
+                            to_node_input_name=conn["to_node_input_name"],
+                        )
+                    )
+
+            node = PipelineNode(
+                node_id=node_data["node_id"],
+                component=component,
+                forward_node_info=tuple(forward_connections),
+                pos=node_data["position"],
+                output_name=node_data.get("output_name"),
+            )
+            node_map[node_data["node_id"]] = node
+
+        return cls(node_map=node_map, inject_input_mapping=data["inject_input_mapping"])
 
     def to_json_str(self) -> str:
         """convert to json format"""
         nodes: List[Dict[str, Any]] = []
         connections: List[Dict[str, str]] = []
         for node_id, pipeline_node in self.node_map.items():
-            node: Dict[str, Any] = {"node_id": node_id, "component": pipeline_node.component.__name__}
+            node: Dict[str, Any] = {
+                "node_id": node_id,
+                "component": pipeline_node.component.__name__,
+                "position": pipeline_node.pos,
+            }
             if pipeline_node.output_name is not None:
                 node["output_name"] = pipeline_node.output_name
             nodes.append(node)
