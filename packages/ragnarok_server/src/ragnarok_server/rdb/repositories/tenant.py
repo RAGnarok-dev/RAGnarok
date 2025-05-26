@@ -33,8 +33,17 @@ class TenantRepository:
         """
         Fetch a Tenant by email.
         """
-        async with self._session_factory() as session:
+        async with self._session_factory() as session: # type: AsyncSession
             stmt = select(Tenant).where(Tenant.email == email)
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
+
+    async def get_tenant_by_id(self, tenant_id: str) -> Optional[Tenant]:
+        """
+        Fetch a Tenant by id.
+        """
+        async with self._session_factory() as session: # type: AsyncSession
+            stmt = select(Tenant).where(Tenant.id == tenant_id)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
         

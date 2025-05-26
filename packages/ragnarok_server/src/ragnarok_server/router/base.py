@@ -69,6 +69,17 @@ class UserInfoResponseModel(BaseModel):
     id: int
     avatar: str
 
+
+class UserJoinTenantRequestModel(BaseModel):
+    tenant_id: str
+
+
+class UserJoinTenantResponseModel(BaseModel):
+    username: str
+    user_id: str
+    tenantname: str
+    tenant_id: str
+
 class TenantRegisterRequestModel(BaseModel):
     email: EmailStr
     tenantname: str
