@@ -7,8 +7,9 @@ def test_text_split_component():
     test_pdf_path = "test_file.txt"
     with open(test_pdf_path, "rb") as f:
         test_file_byte = f.read()
-    # Execute the text splitting component
-    output = TextSplitComponent.execute("txt", test_file_byte, "semantic_split")
+    # Execute the text splitting componentsemantic
+    #character_split、recursive_split、semantic_split
+    output = TextSplitComponent.execute("txt", test_file_byte, "character_split")
     #output = asyncio.run(TextSplitComponent.execute("txt", test_file_byte, "semantic_split"))
     # Assertions to check if the output is as expected
     assert isinstance(output, dict), "The output should be a dictionary"
