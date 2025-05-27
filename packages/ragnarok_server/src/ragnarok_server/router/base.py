@@ -69,6 +69,17 @@ class UserInfoResponseModel(BaseModel):
     id: int
     avatar: str
 
+
+class UserJoinTenantRequestModel(BaseModel):
+    tenant_id: str
+
+
+class UserJoinTenantResponseModel(BaseModel):
+    username: str
+    user_id: str
+    tenantname: str
+    tenant_id: str
+
 class TenantRegisterRequestModel(BaseModel):
     email: EmailStr
     tenantname: str
@@ -116,6 +127,12 @@ class TenantRemoveUserResponseModel(BaseModel):
     username: str
     user_email: EmailStr
     tenant_id: int
+
+class TenantInfoResponseModel(BaseModel):
+    tenantname: str
+    id: int
+    avatar: str
+
 
 class PipelineDetailModel(BaseModel):
     id: int

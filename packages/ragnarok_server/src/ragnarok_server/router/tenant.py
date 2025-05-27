@@ -15,8 +15,10 @@ from ragnarok_server.router.base import (
     TenantInviteResponseModel,
     TenantRemoveUserRequestModel,
     TenantRemoveUserResponseModel
+    TenantLoginRequestModel,
+    TenantInfoResponseModel,
 )
-
+from ragnarok_server.auth import get_current_tenant
 
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
 
@@ -138,5 +140,25 @@ async def remove_user_from_tenant(
             username=user.username,
             user_email=user.email,
             tenant_id=data.tenant_id,
+        )
+    )
+
+@router.get(
+    "/info",
+    summary="Get an existing tenant info",
+    response_model=Response[TenantInfoResponseModel],
+)
+async def get_tenant_info(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    service=Depends(lambda: tenant_service)
+) -> Response[TenantInfoResponseModel]:
+
+    result: dict = await service.get_tenant_info(current_tenant)
+
+    return ResponseCode.OK.to_response(
+        data=TenantInfoResponseModel(
+            tenantname=result["tenantname"],
+            id=result["id"],
+            avatar="avatar"
         )
     )
