@@ -38,7 +38,7 @@ class TenantRepository:
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
 
-    async def get_tenant_by_id(self, tenant_id: str) -> Optional[Tenant]:
+    async def get_tenant_by_id(self, tenant_id: int) -> Optional[Tenant]:
         """
         Fetch a Tenant by id.
         """

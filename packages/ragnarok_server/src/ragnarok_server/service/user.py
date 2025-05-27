@@ -76,7 +76,7 @@ class UserService:
 
     @staticmethod
     async def get_user_info(user: User) -> dict:
-        if not User:
+        if not user:
             raise InvalidArgsError("User does not exist, please log in")
 
         return {
@@ -85,7 +85,7 @@ class UserService:
             "avatar": "avatar"
         }
 
-    async def join_tenant(self, tenant_id: str, user: User,) -> dict:
+    async def join_tenant(self, tenant_id: int, user: User,) -> dict:
         if not user:
             raise NoResultFoundError("User does not exist")
 

@@ -98,7 +98,7 @@ class UserRepository:
             logger.info(f"Created new user {username!r} (id={user.id})")
             return user
 
-    async def update_tenant_id(self, user: User, tenant_id: str) -> User:
+    async def update_tenant_id(self, user: User, tenant_id: int) -> User:
         """
         Update the tenant_id of a user.
         """

@@ -74,6 +74,16 @@ class TenantService:
             "token_type": "Bearer"
         }
 
+    @staticmethod
+    async def get_tenant_info(tenant: Tenant) -> dict:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return {
+            "tenantname": tenant.name,
+            "id": tenant.id,
+            "avatar": "avatar"
+        }
 
 tenant_service = TenantService()
 

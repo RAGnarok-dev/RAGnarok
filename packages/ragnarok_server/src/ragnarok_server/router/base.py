@@ -108,6 +108,12 @@ class TenantLoginResponseModel(BaseModel):
     token_type: str
 
 
+class TenantInfoResponseModel(BaseModel):
+    tenantname: str
+    id: int
+    avatar: str
+
+
 class PipelineDetailModel(BaseModel):
     id: int
     name: str

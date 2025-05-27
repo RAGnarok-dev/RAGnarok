@@ -10,9 +10,10 @@ from ragnarok_server.router.base import (
     TenantRegisterRequestModel,
     TenantRegisterResponseModel,
     TenantLoginResponseModel,
-    TenantLoginRequestModel
+    TenantLoginRequestModel,
+    TenantInfoResponseModel,
 )
-
+from ragnarok_server.auth import get_current_tenant
 
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
 
@@ -79,5 +80,25 @@ async def login_tenant(
             is_active=tenant.is_active,
             access_token=result["access_token"],
             token_type=result["token_type"]
+        )
+    )
+
+@router.get(
+    "/info",
+    summary="Get an existing tenant info",
+    response_model=Response[TenantInfoResponseModel],
+)
+async def get_tenant_info(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    service=Depends(lambda: tenant_service)
+) -> Response[TenantInfoResponseModel]:
+
+    result: dict = await service.get_tenant_info(current_tenant)
+
+    return ResponseCode.OK.to_response(
+        data=TenantInfoResponseModel(
+            tenantname=result["tenantname"],
+            id=result["id"],
+            avatar="avatar"
         )
     )
