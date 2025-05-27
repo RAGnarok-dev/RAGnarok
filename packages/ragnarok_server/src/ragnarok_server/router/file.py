@@ -89,35 +89,23 @@ async def remove_file(request: FileRemoveRequest) -> Response:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="No Such File")
 
 
-class FileRequest(BaseModel):
-    file_id: str
-
-
 @router.get("/getFile")
-async def get_file(request: FileRequest) -> Response[FileResponse]:
-    file = await file_service.get_file_by_id(request.file_id)
+async def get_file(file_id: str) -> Response[FileResponse]:
+    file = await file_service.get_file_by_id(file_id)
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(file))
 
 
-class FileListRequest(BaseModel):
-    file_id: str
-
-
 @router.get("/getFileList")
-async def get_file_list(request: FileListRequest) -> Response[ListResponseData[FileResponse]]:
-    file_list = await file_service.get_file_list(request.file_id)
+async def get_file_list(file_id: str) -> Response[ListResponseData[FileResponse]]:
+    file_list = await file_service.get_file_list(file_id)
     return ResponseCode.OK.to_response(
         data=ListResponseData(count=len(file_list), items=[FileResponse.model_validate(file) for file in file_list])
     )
 
 
-class GetAllParentsRequest(BaseModel):
-    file_id: str
-
-
 @router.get("/getAllParentFolders")
-async def get_all_parent_folders(request: GetAllParentsRequest) -> Response[ListResponseData[FileResponse]]:
-    all_parents = await file_service.get_all_parent_folders(request.file_id)
+async def get_all_parent_folders(file_id: str) -> Response[ListResponseData[FileResponse]]:
+    all_parents = await file_service.get_all_parent_folders(file_id)
     return ResponseCode.OK.to_response(
         data=ListResponseData(
             count=len(all_parents), items=[FileResponse.model_validate(parent) for parent in all_parents]

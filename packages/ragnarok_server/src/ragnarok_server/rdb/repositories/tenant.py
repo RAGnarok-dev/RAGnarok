@@ -7,6 +7,10 @@ from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import Tenant
 from sqlalchemy import select
 
+from ragnarok_server.rdb.models import User
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
+
 logger = logging.getLogger(__name__)
 
 # configure your password hashing context (must match how you created password_hash)
@@ -86,3 +90,43 @@ class TenantRepository:
 
         return tenant
 
+    async def invite_user_to_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
+        """
+        Invite a user to join a tenant. This sets the user's tenant_id if the user exists.
+        """
+        async with self._session_factory() as session:  # type: AsyncSession
+            stmt = select(User).where(User.email == user_email)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            if user is None:
+                logger.warning(f"Invite failed: user with email={user_email} not found.")
+                return None
+
+            user.tenant_id = tenant_id
+            await session.commit()
+            await session.refresh(user)
+
+            logger.info(f"User {user.username} (email={user.email}) is now part of tenant id={tenant_id}")
+            return user
+
+
+    async def remove_user_from_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
+        """
+        Remove a user from a tenant by clearing their tenant_id.
+        """
+        async with self._session_factory() as session:  # type: AsyncSession
+            stmt = select(User).where(User.email == user_email, User.tenant_id == tenant_id)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            if user is None:
+                logger.warning(f"Remove failed: user with email={user_email} not found in tenant {tenant_id}")
+                return None
+
+            user.tenant_id = None
+            await session.commit()
+            await session.refresh(user)
+
+            logger.info(f"User {user.username} (email={user.email}) removed from tenant id={tenant_id}")
+            return user

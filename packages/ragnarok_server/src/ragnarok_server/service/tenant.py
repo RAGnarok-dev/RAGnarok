@@ -1,8 +1,8 @@
 # ragnarok_server/service/tenant.py
-
+from typing import Optional
 
 from ragnarok_server.rdb.repositories.tenant import TenantRepository
-from ragnarok_server.rdb.models import Tenant
+from ragnarok_server.rdb.models import Tenant, User
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
 from pydantic import EmailStr
 from ragnarok_server.auth import create_access_token
@@ -74,6 +74,19 @@ class TenantService:
             "token_type": "Bearer"
         }
 
+    async def invite_user_to_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
+        """
+        Invite a user to join a tenant by email.
+        """
+        return await self.repo.invite_user_to_tenant(tenant_id, user_email)
+
+
+
+    async def remove_user_from_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
+        """
+        Remove a user from a tenant by email.
+        """
+        return await self.repo.remove_user_from_tenant(tenant_id, user_email)
 
 tenant_service = TenantService()
 
