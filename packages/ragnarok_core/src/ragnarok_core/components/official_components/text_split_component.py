@@ -1,3 +1,4 @@
+import functools
 import re
 import numpy as np
 from typing import Dict, Tuple, List
@@ -9,6 +10,7 @@ from ragnarok_toolkit.component import (
     RagnarokComponent,
 )
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
+import asyncio
 
 
 class TextSplitComponent(RagnarokComponent):
@@ -48,17 +50,16 @@ class TextSplitComponent(RagnarokComponent):
         )
 
     @classmethod
-    def execute(cls, file_type: str, file_byte: bytes, split_type: str) -> Dict[str, List[str]]:
+    async def execute(cls, file_type: str, file_byte: bytes, split_type: str) -> Dict[str, List[str]]:
         """Main execution method for processing the text content and splitting text."""
         file_type = file_type.lower()
         text = cls.extract_text(file_type, file_byte)
         if split_type == "character_split":
-            """Split the file by chunk size"""""
-            chunks = cls.common_split(text)
+            chunks = await asyncio.to_thread(cls.common_split, text)
         elif split_type == "recursive_split":
-            chunks = cls.recursive_split(text)
+            chunks = await asyncio.to_thread(cls.recursive_split, text)
         elif split_type == "semantic_split":
-            chunks = cls.semantic_splitting(text)
+            chunks = await cls.semantic_splitting(text)
         else:
             chunks = []
 
@@ -94,13 +95,13 @@ class TextSplitComponent(RagnarokComponent):
         return text_spliter.split_text(text)
 
     @classmethod
-    def semantic_splitting(cls, text: str) -> List[str]:
+    async def semantic_splitting(cls, text: str) -> List[str]:
 
         sentences = cls.split_sentences(text)
 
         sentences = cls.combine_sentences(sentences)
 
-        sentences = cls.embed_sentences(sentences)
+        sentences = await cls.embed_sentences(sentences)
 
         sentences = cls.compute_distances(sentences)
 
@@ -127,33 +128,31 @@ class TextSplitComponent(RagnarokComponent):
         return sentences
 
     @staticmethod
-    def embed_sentences(sentences: List[Dict]) -> List[Dict]:
+    async def embed_sentences(sentences: List[Dict]) -> List[Dict]:
         combined_texts = [x['combined_sentence'] for x in sentences]
 
         base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         api_key = "sk-7ce272f166b84698b4a397b681065c7c"
 
-        client = OpenAI(
-            api_key=api_key,
-            base_url=base_url
-        )
+        client = OpenAI(api_key=api_key, base_url=base_url)
 
         all_embeddings = []
-
         batch_size = 25
+
         for i in range(0, len(combined_texts), batch_size):
             batch_texts = combined_texts[i:i + batch_size]
 
-            response = client.embeddings.create(
+            func = functools.partial(
+                client.embeddings.create,
                 model="text-embedding-v1",
                 input=batch_texts,
                 encoding_format="float"
             )
+            response = await asyncio.to_thread(func)
 
             batch_embeddings = [item.embedding for item in response.data]
             all_embeddings.extend(batch_embeddings)
 
-        # 回写嵌入到每个 sentence
         for i in range(len(sentences)):
             sentences[i]['combined_sentence_embedding'] = all_embeddings[i]
 
@@ -190,4 +189,3 @@ class TextSplitComponent(RagnarokComponent):
         if current_chunk:
             chunks.append("".join(current_chunk))
         return chunks
-
