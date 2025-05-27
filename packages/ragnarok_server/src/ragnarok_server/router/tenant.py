@@ -10,11 +10,10 @@ from ragnarok_server.router.base import (
     TenantRegisterRequestModel,
     TenantRegisterResponseModel,
     TenantLoginResponseModel,
-    TenantLoginRequestModel,
     TenantInviteRequestModel,
     TenantInviteResponseModel,
     TenantRemoveUserRequestModel,
-    TenantRemoveUserResponseModel
+    TenantRemoveUserResponseModel,
     TenantLoginRequestModel,
     TenantInfoResponseModel,
 )
