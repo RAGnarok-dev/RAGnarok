@@ -80,6 +80,7 @@ class UserJoinTenantResponseModel(BaseModel):
     tenantname: str
     tenant_id: str
 
+
 class TenantRegisterRequestModel(BaseModel):
     email: EmailStr
     tenantname: str
@@ -132,6 +133,12 @@ class TenantInfoResponseModel(BaseModel):
     tenantname: str
     id: int
     avatar: str
+
+
+class TenantGetUsersResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    users: list[UserInfoResponseModel]
 
 
 class PipelineDetailModel(BaseModel):

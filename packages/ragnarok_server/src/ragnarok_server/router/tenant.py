@@ -2,7 +2,7 @@ from fastapi import Body
 from fastapi import Depends
 from fastapi import Response as FastAPIResponse
 from ragnarok_server.service.tenant import tenant_service
-from ragnarok_server.rdb.models import Tenant
+from ragnarok_server.rdb.models import Tenant, User
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError, NoResultFoundError
 from ragnarok_server.router.base import (
@@ -16,6 +16,8 @@ from ragnarok_server.router.base import (
     TenantRemoveUserResponseModel,
     TenantLoginRequestModel,
     TenantInfoResponseModel,
+    TenantGetUsersResponseModel,
+    UserInfoResponseModel,
 )
 from ragnarok_server.auth import get_current_tenant
 
@@ -161,3 +163,34 @@ async def get_tenant_info(
             avatar="avatar"
         )
     )
+
+
+@router.get(
+    "/get_users",
+    summary="Tenants obtain all user information",
+    response_model=Response[TenantGetUsersResponseModel],
+)
+async def get_all_users_info(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    service=Depends(lambda: tenant_service)
+) -> Response[TenantGetUsersResponseModel]:
+    users: list[User] = await service.get_all_users_info(current_tenant)
+
+    user_data = [
+        UserInfoResponseModel(
+            id=user.id,
+            username=user.username,
+            avatar="avatar"
+        )
+        for user in users
+    ]
+
+    return ResponseCode.OK.to_response(
+        data=TenantGetUsersResponseModel(
+            tenant_id=current_tenant.id,
+            tenantname=current_tenant.name,
+            users=user_data
+        )
+    )
+
+
