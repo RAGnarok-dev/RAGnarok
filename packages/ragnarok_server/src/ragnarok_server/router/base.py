@@ -96,6 +96,26 @@ class TenantLoginResponseModel(BaseModel):
     access_token: str
     token_type: str
 
+class TenantInviteRequestModel(BaseModel):
+    tenant_id: int
+    user_email: EmailStr
+
+class TenantInviteResponseModel(BaseModel):
+    user_id: int
+    username: str
+    user_email: EmailStr
+    tenant_id: int
+
+
+class TenantRemoveUserRequestModel(BaseModel):
+    tenant_id: int
+    user_email: EmailStr
+
+class TenantRemoveUserResponseModel(BaseModel):
+    user_id: int
+    username: str
+    user_email: EmailStr
+    tenant_id: int
 
 class PipelineDetailModel(BaseModel):
     id: int
