@@ -147,4 +147,3 @@ class TenantRepository:
             result = await session.execute(stmt)
             users = result.scalars().all()
             return users
-
