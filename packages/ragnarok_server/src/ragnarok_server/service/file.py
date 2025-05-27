@@ -3,6 +3,7 @@ from typing import Optional
 
 from ragnarok_server.rdb.models import File
 from ragnarok_server.rdb.repositories.file import FileRepository
+from ragnarok_server.service.odb import odb_service
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,7 @@ class FileService:
         knowledge_base_id: int,
         principal_id: int,
         principal_type: str,
+        chunk_size: int = 0,
         description: Optional[str] = None,
     ) -> File:
         parent_file = await self.file_repo.get_file_by_id(parent_id)
@@ -92,6 +94,7 @@ class FileService:
             principal_type=principal_type,
             parent_id=parent_id,
             knowledge_base_id=knowledge_base_id,
+            chunk_size=chunk_size,
         )
         # TODO: upload file to vdb and odb
         return await self.file_repo.create_file(file)
@@ -99,11 +102,12 @@ class FileService:
     async def get_file_list(self, folder_id: str) -> list[File]:
         return await self.file_repo.get_file_list(folder_id)
 
-    async def remove_file(self, file_id: str) -> bool:
+    async def remove_file(self, file_id: str, bucket_name: str) -> bool:
         file_list = await self.get_file_list(file_id)
         for file in file_list:
-            await self.remove_file(file.id)
-        # TODO: delete file from vdb and odb
+            await self.remove_file(file.id, bucket_name)
+        if await odb_service.check_file_exists(bucket_name=bucket_name, key=file_id):
+            await odb_service.delete_object(bucket_name=bucket_name, key=file_id)
         return await self.file_repo.remove_file(file_id)
 
     async def move_file(self, file_id: str, dest_folder_id: str) -> bool:
