@@ -53,7 +53,7 @@ class FileService:
         return True
 
     async def create_kb_root_folder(
-        self, knowldge_base_name: str, knowledge_base_id: int, created_by: str, description: str
+        self, knowldge_base_name: str, knowledge_base_id: int, principal_id: int, principal_type: str, description: str
     ) -> File:
         file = File(
             name=knowldge_base_name,
@@ -61,7 +61,8 @@ class FileService:
             type="root",
             size=0,
             location="/",
-            created_by=created_by,
+            principal_id=principal_id,
+            principal_type=principal_type,
             parent_id=None,
             knowledge_base_id=knowledge_base_id,
         )
@@ -74,7 +75,8 @@ class FileService:
         size: int,
         parent_id: str,
         knowledge_base_id: int,
-        created_by: str = "user-system",
+        principal_id: int,
+        principal_type: str,
         description: Optional[str] = None,
     ) -> File:
         parent_file = await self.file_repo.get_file_by_id(parent_id)
@@ -86,7 +88,8 @@ class FileService:
             type=type,
             size=size,
             location=location,
-            created_by=created_by,
+            principal_id=principal_id,
+            principal_type=principal_type,
             parent_id=parent_id,
             knowledge_base_id=knowledge_base_id,
         )
