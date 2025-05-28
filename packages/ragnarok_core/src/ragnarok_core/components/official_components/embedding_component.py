@@ -14,7 +14,7 @@ class EmbeddingComponent(RagnarokComponent):
     ENABLE_HINT_CHECK: bool = True
 
     HF_API_URL = (
-        "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+        "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction"
     )
     HEADERS = {"Authorization": "Bearer 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"}
 
