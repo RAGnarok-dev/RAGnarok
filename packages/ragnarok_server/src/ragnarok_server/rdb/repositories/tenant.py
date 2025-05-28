@@ -4,17 +4,15 @@ from pydantic import EmailStr
 
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
-from ragnarok_server.rdb.models import Tenant
+from ragnarok_server.rdb.models import Tenant, User
 from sqlalchemy import select
-
-from ragnarok_server.rdb.models import User
-from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 # configure your password hashing context (must match how you created password_hash)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 class TenantRepository:
     """
@@ -28,7 +26,7 @@ class TenantRepository:
         """
         Fetch a Tenant by tenantname.
         """
-        async with self._session_factory() as session: # type: AsyncSession
+        async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(Tenant).where(Tenant.name == tenantname)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
@@ -37,8 +35,17 @@ class TenantRepository:
         """
         Fetch a Tenant by email.
         """
-        async with self._session_factory() as session:
+        async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(Tenant).where(Tenant.email == email)
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
+
+    async def get_tenant_by_id(self, tenant_id: int) -> Optional[Tenant]:
+        """
+        Fetch a Tenant by id.
+        """
+        async with self._session_factory() as session:  # type: AsyncSession
+            stmt = select(Tenant).where(Tenant.id == tenant_id)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
         
@@ -68,7 +75,7 @@ class TenantRepository:
     async def authenticate(self, tenantname: Optional[str] = None, email: Optional[EmailStr] = None, password: str = "") -> \
             Optional[Tenant]:
         """
-        Validate credentials using either username or email. Returns the Tenant if successful, else None.
+        Validate credentials using either tenantname or email. Returns the Tenant if successful, else None.
         """
         if not tenantname and not email:
             logger.debug("Authentication failed: no identifier (tenantname/email) provided.")
@@ -110,7 +117,6 @@ class TenantRepository:
             logger.info(f"User {user.username} (email={user.email}) is now part of tenant id={tenant_id}")
             return user
 
-
     async def remove_user_from_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
         """
         Remove a user from a tenant by clearing their tenant_id.
@@ -130,3 +136,10 @@ class TenantRepository:
 
             logger.info(f"User {user.username} (email={user.email}) removed from tenant id={tenant_id}")
             return user
+
+    async def get_all_users_info(self, tenant_id: int) -> list[User]:
+        async with self._session_factory() as session:  # type: AsyncSession
+            stmt = select(User).where(User.tenant_id == tenant_id)
+            result = await session.execute(stmt)
+            users = result.scalars().all()
+            return list(users)

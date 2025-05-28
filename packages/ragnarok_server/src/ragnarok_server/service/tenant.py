@@ -8,8 +8,6 @@ from pydantic import EmailStr
 from ragnarok_server.auth import create_access_token
 
 
-
-
 class TenantService:
     """
     Service for handling Tenant-related business logic.
@@ -27,7 +25,7 @@ class TenantService:
         
         # 2) Check if email is already registered
         if await self.repo.get_tenant_by_email(email):
-             raise DuplicateEntryError("Email has been registered")
+            raise DuplicateEntryError("Email has been registered")
          
         # 3) Create tenant
         return await self.repo.create_tenant(
@@ -71,9 +69,19 @@ class TenantService:
         return {
             "tenant": tenant,
             "access_token": token,
-            "token_type": "bearer"
+            "token_type": "Bearer"
         }
 
+    @staticmethod
+    async def get_tenant_info(tenant: Tenant) -> dict:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return {
+            "tenantname": tenant.name,
+            "id": tenant.id,
+            "avatar": "avatar"
+        }
     async def invite_user_to_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
         """
         Invite a user to join a tenant by email.
@@ -87,6 +95,13 @@ class TenantService:
         Remove a user from a tenant by email.
         """
         return await self.repo.remove_user_from_tenant(tenant_id, user_email)
+
+    async def get_all_users_info(self, tenant: Tenant) -> list[User]:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return await self.repo.get_all_users_info(tenant.id)
+
 
 tenant_service = TenantService()
 
