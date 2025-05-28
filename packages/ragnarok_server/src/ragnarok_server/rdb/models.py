@@ -1,9 +1,6 @@
 from enum import Enum
 
-from ragnarok_toolkit.common import PermissionType, PrincipalType
-from sqlalchemy import Boolean
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, Sequence, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 # from sqlalchemy import Sequnce
 
@@ -90,7 +87,8 @@ class KnowledgeBase(Base):
     embedding_model_id: Mapped[int] = mapped_column(Integer, nullable=False)
     root_file_id: Mapped[str] = mapped_column(String, nullable=False)
 
-    created_by: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    principal_type: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class Permission(Base):
@@ -109,19 +107,18 @@ class Permission(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    principal_type: Mapped[PrincipalType] = mapped_column(SQLEnum(PrincipalType), nullable=False)
+    # principal_type: "tenant" or "user"
+    principal_type: Mapped[str] = mapped_column(String, nullable=False)
 
     # knowledge_base_id: FK → knowledge_bases.id
     knowledge_base_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # permission_type: "read", "write", or "admin"
-    permission_type: Mapped[PermissionType] = mapped_column(SQLEnum(PermissionType), nullable=False)
+    permission_type: Mapped[str] = mapped_column(String, nullable=False)
 
     __table_args__ = (
         # ensure each principal only has one record per KB
-        UniqueConstraint(
-            "principal_id", "principal_type", "knowledge_base_id", "permission_type", name="_principal_kb_uc"
-        ),
+        UniqueConstraint("principal_id", "principal_type", "knowledge_base_id", name="_principal_kb_uc"),
     )
 
 
@@ -164,7 +161,9 @@ class File(Base):
     type: Mapped[str] = mapped_column(String, nullable=False)
     size: Mapped[int] = mapped_column(Integer, nullable=False)
     location: Mapped[str] = mapped_column(String, nullable=False)
-    created_by: Mapped[str] = mapped_column(String, nullable=False)
+    principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # principal_type: "tenant" or "user"
+    principal_type: Mapped[str] = mapped_column(String, nullable=False)
     # chunk_count: Mapped[int] = mapped_column(Integer, nullable=False)
 
     parent_id: Mapped[str] = mapped_column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
