@@ -1,14 +1,18 @@
 from fastapi import Body, Depends
 from fastapi import Response as FastAPIResponse
 from ragnarok_server.common import Response, ResponseCode
-from ragnarok_server.exceptions import InvalidArgsError
+from ragnarok_server.exceptions import InvalidArgsError, NoResultFoundError
 from ragnarok_server.rdb.models import Tenant
 from ragnarok_server.router.base import (
     CustomAPIRouter,
+    TenantInviteRequestModel,
+    TenantInviteResponseModel,
     TenantLoginRequestModel,
     TenantLoginResponseModel,
     TenantRegisterRequestModel,
     TenantRegisterResponseModel,
+    TenantRemoveUserRequestModel,
+    TenantRemoveUserResponseModel,
 )
 from ragnarok_server.service.odb import odb_service
 from ragnarok_server.service.tenant import tenant_service
@@ -72,5 +76,56 @@ async def login_tenant(
             is_active=tenant.is_active,
             access_token=result["access_token"],
             token_type=result["token_type"],
+        )
+    )
+
+
+@router.post(
+    "/invite",
+    summary="Invite a user to a tenant by email",
+    response_model=Response[TenantInviteResponseModel],
+)
+async def invite_user_to_tenant_by_email(
+    data: TenantInviteRequestModel = Body(...),
+    service=Depends(lambda: tenant_service),
+) -> Response[TenantInviteResponseModel]:
+    """
+    Invite a user to a tenant by looking up their email.
+    """
+    user = await service.invite_user_to_tenant(data.tenant_id, data.user_email)
+
+    if not user:
+        raise NoResultFoundError("No User Find")
+
+    return ResponseCode.OK.to_response(
+        data=TenantInviteResponseModel(
+            user_id=user.id, username=user.username, user_email=user.email, tenant_id=data.tenant_id
+        )
+    )
+
+
+@router.post(
+    "/remove",
+    summary="Remove a user from a tenant by email",
+    response_model=Response[TenantRemoveUserResponseModel],
+)
+async def remove_user_from_tenant(
+    data: TenantRemoveUserRequestModel = Body(...),
+    service=Depends(lambda: tenant_service),
+) -> Response[TenantRemoveUserResponseModel]:
+    """
+    Remove a user from a tenant by looking up their email.
+    """
+    user = await service.remove_user_from_tenant(data.tenant_id, data.user_email)
+
+    if not user:
+        raise NoResultFoundError("No User Found in the Specified Tenant")
+
+    return ResponseCode.OK.to_response(
+        data=TenantRemoveUserResponseModel(
+            user_id=user.id,
+            username=user.username,
+            user_email=user.email,
+            tenant_id=data.tenant_id,
         )
     )

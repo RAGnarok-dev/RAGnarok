@@ -26,7 +26,7 @@ class PipelineNode:
         node_id: str,
         component: Type[RagnarokComponent],
         forward_node_info: Tuple[NodeConnection, ...],
-        pos: NodePosition,
+        pos: NodePosition=None,
         output_name: Optional[str] = None,
     ) -> None:
         # each node in one pipeline has a unique id

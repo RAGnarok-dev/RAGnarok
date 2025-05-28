@@ -30,6 +30,7 @@ class ComponentIOType(StrEnum):
     VEC_POINT_LIST = "VEC_POINT_LIST"
     SEARCH_PAYLOAD_DICT = "SEARCH_PAYLOAD_DICT"
     SEARCH_PAYLOAD_DICT_LIST = "SEARCH_PAYLOAD_DICT_LIST"
+    DICT = "DICT"
 
     @property
     def python_type(self):
@@ -49,6 +50,7 @@ TYPE_MAPPING = {
     ComponentIOType.VEC_POINT_LIST: List[QdrantPoint],
     ComponentIOType.SEARCH_PAYLOAD_DICT: SearchPayloadDict,
     ComponentIOType.SEARCH_PAYLOAD_DICT_LIST: List[SearchPayloadDict],
+    ComponentIOType.DICT: dict
 }
 
 
