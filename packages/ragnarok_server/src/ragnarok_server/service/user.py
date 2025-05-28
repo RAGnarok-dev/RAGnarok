@@ -3,9 +3,11 @@
 from typing import Optional
 from pydantic import EmailStr
 from ragnarok_server.rdb.repositories.user import UserRepository
+from ragnarok_server.rdb.repositories.tenant import TenantRepository
 from ragnarok_server.rdb.models import User
 from ragnarok_server.exceptions import DuplicateEntryError, NoResultFoundError, InvalidArgsError
 from ragnarok_server.auth import create_access_token
+
 
 class UserService:
     """
@@ -69,7 +71,42 @@ class UserService:
         return {
             "user": user,
             "access_token": token,
-            "token_type": "bearer"
+            "token_type": "Bearer"
+        }
+
+    @staticmethod
+    async def get_user_info(user: User) -> dict:
+        if not user:
+            raise InvalidArgsError("User does not exist, please log in")
+
+        return {
+            "username": user.username,
+            "id": user.id,
+            "avatar": "avatar"
+        }
+
+    async def join_tenant(self, tenant_id: int, user: User,) -> dict:
+        if not user:
+            raise NoResultFoundError("User does not exist")
+
+        if not tenant_id:
+            raise InvalidArgsError("Tenant_id must be provide")
+
+        if user.tenant_id is not None:
+            raise DuplicateEntryError("User already belongs to a tenant")
+
+        tenant_repo = TenantRepository()
+        tenant = await tenant_repo.get_tenant_by_id(tenant_id)
+
+        if not tenant:
+            raise NoResultFoundError("Tenant does not exist")
+
+        cur_user = await self.repo.update_tenant_id(user, tenant_id)
+        return {
+            "username": cur_user.username,
+            "user_id": cur_user.id,
+            "tenantname": tenant.name,
+            "tenant_id": tenant.id
         }
 
 

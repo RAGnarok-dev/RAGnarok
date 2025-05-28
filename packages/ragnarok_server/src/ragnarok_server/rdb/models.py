@@ -5,7 +5,7 @@ from sqlalchemy import JSON, Boolean, DateTime
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
+# from sqlalchemy import Sequnce
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
@@ -181,6 +181,7 @@ class File(Base):
     """
 
     __tablename__ = "files"
+
 
     id: Mapped[str] = mapped_column(String, Sequence("file_id_seq"), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)

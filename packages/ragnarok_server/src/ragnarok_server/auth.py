@@ -11,7 +11,8 @@ from pydantic import BaseModel
 
 from ragnarok_toolkit.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from ragnarok_server.rdb.repositories.user import UserRepository
-from ragnarok_server.rdb.models import User
+from ragnarok_server.rdb.repositories.tenant import TenantRepository
+from ragnarok_server.rdb.models import User, Tenant
 from ragnarok_server.exceptions import NoResultFoundError
 
 logger = logging.getLogger(__name__)
@@ -115,10 +116,28 @@ async def get_current_user(
     token_data = await decode_access_token(token)  # Decode the token
     user = await user_repo.get_user_by_id(token_data.principal_id)  # Get the user from the database
 
-    if not user:
+    if not user or token_data.principal_type != "user":
         raise NoResultFoundError  # If no user found, raise an exception
 
     return user  # Return the user object
+
+
+async def get_current_tenant(
+        token: str = Depends(oauth2_scheme),
+        tenant_repo: TenantRepository = Depends(),
+) -> Tenant:
+    """
+    Get the current tenant from the decoded JWT token.
+    This function is used as a dependency in routes that need the current authenticated tenant.
+    """
+    token_data = await decode_access_token(token)
+    tenant = await tenant_repo.get_tenant_by_id(token_data.principal_id)
+
+    if not tenant or token_data.principal_type != "tenant":
+        raise NoResultFoundError
+
+    return tenant
+
 
 
 # # Usage in a route
