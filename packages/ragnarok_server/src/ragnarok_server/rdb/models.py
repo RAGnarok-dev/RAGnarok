@@ -198,7 +198,6 @@ class File(Base):
     principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
     # principal_type: "tenant" or "user"
     principal_type: Mapped[str] = mapped_column(String, nullable=False)
-    chunk_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
     parent_id: Mapped[str] = mapped_column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
 

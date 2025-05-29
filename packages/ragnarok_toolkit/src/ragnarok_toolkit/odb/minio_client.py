@@ -1,9 +1,15 @@
 import logging
+from typing import Dict, TypedDict
 
 from aiobotocore.session import get_session
 from ragnarok_toolkit import config
 
 logger = logging.getLogger(__name__)
+
+
+class ObjectResponse(TypedDict):
+    content: bytes
+    metadata: Dict[str, str]
 
 
 class MinioClient:
@@ -43,16 +49,19 @@ class MinioClient:
             return buckets
 
     @classmethod
-    async def upload_object(cls, bucket_name: str, key: str, data: bytes):
+    async def upload_object(cls, bucket_name: str, key: str, data: bytes, metadata: dict = None):
         async with await cls._create_client() as minio_client:
-            await minio_client.put_object(Bucket=bucket_name, Key=key, Body=data)
+            kwargs = {"Bucket": bucket_name, "Key": key, "Body": data}
+            if metadata:
+                kwargs["Metadata"] = metadata
+            await minio_client.put_object(**kwargs)
             logger.info(f"Uploaded {key} to {bucket_name}")
 
     @classmethod
-    async def download_object(cls, bucket_name: str, key: str):
+    async def download_object(cls, bucket_name: str, key: str) -> ObjectResponse:
         async with await cls._create_client() as minio_client:
             response = await minio_client.get_object(Bucket=bucket_name, Key=key)
-            return await response["Body"].read()
+            return {"content": await response["Body"].read(), "metadata": response.get("Metadata", {})}
 
     @classmethod
     async def delete_object(cls, bucket_name: str, key: str):

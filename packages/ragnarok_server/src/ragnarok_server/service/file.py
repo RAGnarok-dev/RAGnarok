@@ -78,7 +78,6 @@ class FileService:
         knowledge_base_id: int,
         principal_id: int,
         principal_type: str,
-        chunk_size: int = 0,
         description: Optional[str] = None,
     ) -> File:
         parent_file = await self.file_repo.get_file_by_id(parent_id)
@@ -94,7 +93,6 @@ class FileService:
             principal_type=principal_type,
             parent_id=parent_id,
             knowledge_base_id=knowledge_base_id,
-            chunk_size=chunk_size,
         )
         # TODO: upload file to vdb and odb
         return await self.file_repo.create_file(file)

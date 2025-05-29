@@ -27,7 +27,6 @@ class FileResponse(BaseModel):
     principal_type: str
     parent_id: Optional[str]
     knowledge_base_id: int
-    chunk_size: int
 
     class Config:
         from_attributes = True
@@ -126,7 +125,7 @@ async def download_file(
     file = await file_service.get_file_by_id(file_id)
     if file is None:
         raise HTTPException(status_code=101, content="No such file")
-    if file.type != "file":
+    if file.type == "root" or file.type == "folder":
         raise HTTPException(status_code=101, content="Not a file")
     content = await odb_service.download_file(bucket_name=f"{file.principal_type}-{file.principal_id}", key=file_id)
     filename = file.name
@@ -135,7 +134,7 @@ async def download_file(
     content_disposition = f"attachment; filename*=UTF-8''{filename_utf8}"
 
     return StreamingResponse(
-        BytesIO(content), media_type=file.type, headers={"Content-Disposition": content_disposition}
+        BytesIO(content["content"]), media_type=file.type, headers={"Content-Disposition": content_disposition}
     )
 
 
