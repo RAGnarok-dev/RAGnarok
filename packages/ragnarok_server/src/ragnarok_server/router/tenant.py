@@ -14,7 +14,7 @@ from ragnarok_server.router.base import (
     TenantRemoveUserRequestModel,
     TenantRemoveUserResponseModel,
 )
-from ragnarok_server.service.odb import odb_service
+from ragnarok_server.service.store import store_service
 from ragnarok_server.service.tenant import tenant_service
 
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
@@ -36,7 +36,7 @@ async def register_tenant(
         register_data.email, register_data.password, register_data.tenantname
     )
 
-    await odb_service.create_bucket(bucket_name=f"tenant-{tenant.id}")
+    await store_service.create_bucket(principal_type="tenant", principal_id=tenant.id)
 
     return ResponseCode.OK.to_response(
         data=TenantRegisterResponseModel(

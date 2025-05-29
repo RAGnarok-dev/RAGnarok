@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import quote
 
 from fastapi import Depends, File, Form, UploadFile
@@ -11,7 +11,8 @@ from ragnarok_server.common import ListResponseData, Response, ResponseCode
 from ragnarok_server.router.base import CustomAPIRouter
 from ragnarok_server.router.permission import require_permission
 from ragnarok_server.service.file import file_service
-from ragnarok_server.service.odb import odb_service
+from ragnarok_server.service.knowledge_base import kb_service
+from ragnarok_server.service.store import store_service
 
 router = CustomAPIRouter(prefix="/files", tags=["File"])
 
@@ -27,6 +28,7 @@ class FileResponse(BaseModel):
     principal_type: str
     parent_id: Optional[str]
     knowledge_base_id: int
+    chunk_size: int
 
     class Config:
         from_attributes = True
@@ -54,9 +56,20 @@ async def upload_file(
         parent_id=parent_id,
         knowledge_base_id=knowledge_base_id,
     )
-    content = await file.read()
-    bucket_name = f"{token.principal_type}-{token.principal_id}"
-    await odb_service.upload_file(bucket_name=bucket_name, key=uploaded_file.id, content=content)
+    kb = await kb_service.get_knowledge_base_by_id(knowledge_base_id)
+    content: bytes = await file.read()
+    chunk_size = await store_service.store_file(
+        knowledge_base_id=knowledge_base_id,
+        principal_type=uploaded_file.principal_type,
+        principal_id=uploaded_file.principal_id,
+        file_id=uploaded_file.id,
+        file_type=uploaded_file.type,
+        content=content,
+        split_type=kb.split_type,
+        embedding_model_name=kb.embedding_model_name,
+    )
+    await file_service.update_file_chunk_size(file_id=uploaded_file.id, chunk_size=chunk_size)
+    uploaded_file.chunk_size = chunk_size
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(uploaded_file))
 
 
@@ -127,15 +140,33 @@ async def download_file(
         raise HTTPException(status_code=101, content="No such file")
     if file.type == "root" or file.type == "folder":
         raise HTTPException(status_code=101, content="Not a file")
-    content = await odb_service.download_file(bucket_name=f"{file.principal_type}-{file.principal_id}", key=file_id)
+    content = await store_service.download_file(
+        principal_type=file.principal_type, principal_id=file.principal_id, file_id=file_id
+    )
     filename = file.name
 
     filename_utf8 = quote(filename)
     content_disposition = f"attachment; filename*=UTF-8''{filename_utf8}"
 
     return StreamingResponse(
-        BytesIO(content["content"]), media_type=file.type, headers={"Content-Disposition": content_disposition}
+        BytesIO(content), media_type=file.type, headers={"Content-Disposition": content_disposition}
     )
+
+
+@router.get("/getChunks")
+@require_permission("read")
+async def get_chunks(
+    file_id: str, knowledge_base_id: int, token: TokenData = Depends(decode_access_token)
+) -> Response[List[str] | None]:
+    file = await file_service.get_file_by_id(file_id)
+    if file is None:
+        raise HTTPException(status_code=101, content="No such file")
+    if file.type == "root" or file.type == "folder":
+        raise HTTPException(status_code=101, content="Not a file")
+    chunks = await store_service.get_chunks(
+        principal_type=file.principal_type, principal_id=file.principal_id, file_id=file.id, chunk_size=file.chunk_size
+    )
+    return ResponseCode.OK.to_response(data=chunks)
 
 
 @router.get("/getFileList")

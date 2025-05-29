@@ -66,3 +66,10 @@ class FileRepository:
             stmt = update(File).where(File.id == file_id).values(parent_id=dest_folder_id)
             result = await session.execute(stmt)
             return result.rowcount > 0
+
+    @classmethod
+    async def update_file_chunk_size(cls, file_id: str, chunk_size: int):
+        async with get_async_session() as session:
+            stmt = update(File).where(File.id == file_id).values(chunk_size=chunk_size)
+            result = await session.execute(stmt)
+            return result.rowcount > 0

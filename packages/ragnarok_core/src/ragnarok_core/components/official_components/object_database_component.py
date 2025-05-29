@@ -1,12 +1,14 @@
 from typing import Any, Dict, List, Tuple
 
-from ragnarok_core.object_database import minio_client
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
+from ragnarok_toolkit.odb.minio_client import MinioClient
+
+minio_client = MinioClient()
 
 
 class StoreODB(RagnarokComponent):

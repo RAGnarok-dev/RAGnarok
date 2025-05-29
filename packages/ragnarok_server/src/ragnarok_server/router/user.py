@@ -12,7 +12,7 @@ from ragnarok_server.router.base import (
     UserRegisterRequestModel,
     UserRegisterResponseModel,
 )
-from ragnarok_server.service.odb import odb_service
+from ragnarok_server.service.store import store_service
 from ragnarok_server.service.user import user_service
 
 router = CustomAPIRouter(prefix="/users", tags=["User"])
@@ -31,7 +31,7 @@ async def register_user(
     Register a new user account using email, password, and username.
     """
     user: User = await service.register_user(register_data.email, register_data.password, register_data.username)
-    await odb_service.create_bucket(bucket_name=f"user-{user.id}")
+    await store_service.create_bucket(principal_type="user", principal_id=user.id)
     return ResponseCode.OK.to_response(
         data=UserRegisterResponseModel(
             id=user.id,
