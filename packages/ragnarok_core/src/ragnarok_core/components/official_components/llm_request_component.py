@@ -3,8 +3,6 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from openai import AsyncOpenAI
-from ragnarok_server.rdb.models import LLMSession
-from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -108,6 +106,14 @@ class LLMRequestComponent(RagnarokComponent):
         )
 
     @classmethod
+    def register_sessions_repo(cls, repo):
+        cls.llm_sessions_repo = repo
+
+    @classmethod
+    def register_session_cls(cls, session_class):
+        cls.LLMSession = session_class
+
+    @classmethod
     async def execute(
         cls,
         creator_id: str,
@@ -125,15 +131,15 @@ class LLMRequestComponent(RagnarokComponent):
         execute the async component function
         """
         if llm_session_id is None:
-            llm_session = LLMSession(
+            llm_session = cls.LLMSession(
                 title="untitled session",
                 created_by=creator_id,
                 history={"messages": []},
             )
-            llm_session = await LLMSessionRepository.create_session(llm_session)
+            llm_session = await cls.llm_sessions_repo.create_session(llm_session)
             llm_session_id = llm_session.id
         else:
-            llm_session = await LLMSessionRepository.get_session_by_id(llm_session_id)
+            llm_session = await cls.llm_sessions_repo.get_session_by_id(llm_session_id)
 
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
@@ -206,9 +212,7 @@ class LLMRequestComponent(RagnarokComponent):
                 print(f"Retrying call {model_name}", e)
                 retries += 1
                 if retries == max_retries:
-                    response_json = {
-                        "answer": f"Error: {e}. Max retries exceeded!"
-                    }
+                    response_json = {"answer": f"Error: {e}. Max retries exceeded!"}
                     break
                 await asyncio.sleep(1)
 
@@ -219,11 +223,8 @@ class LLMRequestComponent(RagnarokComponent):
                 "content": answer,
             }
         )
-        await LLMSessionRepository.update_dialog_history(llm_session_id, {"messages": new_messages})
+        await cls.llm_sessions_repo.update_dialog_history(llm_session_id, {"messages": new_messages})
         return {"out": answer, "llm_session_id": llm_session_id}
-
-    def __new__(cls, *args, **kwargs):
-        raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
 
 
 class LLMIntentRecognitionComponent(RagnarokComponent):
@@ -356,9 +357,7 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
                 print(f"Retrying call {model_name}", e)
                 retries += 1
                 if retries == max_retries:
-                    response_json = {
-                        "intent": f"Error: {e}. Max retries exceeded!"
-                    }
+                    response_json = {"intent": f"Error: {e}. Max retries exceeded!"}
                     break
                 await asyncio.sleep(1)
 

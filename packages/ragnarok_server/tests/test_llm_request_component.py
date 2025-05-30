@@ -7,6 +7,7 @@ from ragnarok_core.components.official_components.llm_request_component import (
     LLMRequestComponent,
 )
 from ragnarok_server.rdb.engine import init_rdb
+from ragnarok_server.rdb.models import LLMSession
 from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
 from ragnarok_server.rdb.repositories.user import UserRepository
 
@@ -34,10 +35,19 @@ async def test_llm():
     question = "What's the weather today?"
     temperature = 0.6
     top_p = 0.9
+    LLMRequestComponent.register_session_cls(LLMSession)
+    LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
 
     intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
     llm_return_intent = await LLMIntentRecognitionComponent.execute(
-        question, intents, model, api_key, base_url, 3, temperature, top_p,
+        question,
+        intents,
+        model,
+        api_key,
+        base_url,
+        3,
+        temperature,
+        top_p,
     )
     print(llm_return_intent)
 
@@ -64,7 +74,7 @@ async def test_llm():
         model,
         api_key,
         base_url,
-        3, 
+        3,
         temperature,
         top_p,
     )
