@@ -1,18 +1,19 @@
-from typing import Optional
 from fastapi import Depends, Body
 from fastapi import Response as FastAPIResponse
 from ragnarok_server.service.user import user_service
 from ragnarok_server.rdb.models import User
-from ragnarok_server.router.base import(
+from ragnarok_server.rdb.engine import get_async_session
+from ragnarok_server.router.base import (
     CustomAPIRouter,
     UserRegisterRequestModel,
     UserRegisterResponseModel,
     UserLoginRequestModel,
     UserLoginResponseModel,
-    UserInfoResponseModel
+    UserInfoResponseModel,
+    UserJoinTenantRequestModel,
+    UserJoinTenantResponseModel
 )
 from ragnarok_server.common import Response, ResponseCode
-from ragnarok_server.exceptions import InvalidArgsError
 from ragnarok_server.auth import get_current_user
 
 router = CustomAPIRouter(prefix="/users", tags=["User"])
@@ -44,6 +45,7 @@ async def register_user(
         )
     )
 
+
 @router.post(
     "/login",
     summary="Login an existing user",
@@ -58,9 +60,6 @@ async def login_user(
     Authenticate a user by either username or email.
     If the user is already authenticated, return their details without requiring a new login.
     """
-    if not login_data.username and not login_data.email:
-        raise InvalidArgsError("Either username or email must be provided")
-
     result: dict = await service.login_user(
         login_data.email,
         login_data.username,
@@ -69,6 +68,7 @@ async def login_user(
     user = result["user"]
 
     response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
+    response.headers["Access-Control-Request-Headers"] = "Authorization"
 
     return ResponseCode.OK.to_response(
         data=UserLoginResponseModel(
@@ -81,6 +81,7 @@ async def login_user(
         )
     )
 
+
 @router.get(
     "/info",
     summary="Get an existing user info",
@@ -88,17 +89,47 @@ async def login_user(
 )
 async def get_user_info(
     current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service)
 ) -> Response[UserInfoResponseModel]:
 
-    if not current_user:
-        raise InvalidArgsError("User does not exist, please log in")
+    result: dict = await service.get_user_info(current_user)
 
     return ResponseCode.OK.to_response(
         data=UserInfoResponseModel(
-            username=current_user.username,
-            id=current_user.id,
+            username=result["username"],
+            id=result["id"],
             avatar="avatar"
         )
     )
+
+
+@router.post(
+    "/join_tenant",
+    summary="User want to join a tenant",
+    response_model=Response[UserJoinTenantResponseModel],
+)
+async def join_tenant(
+    join_data: UserJoinTenantRequestModel = Body(...),
+    current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service)
+) -> Response[UserJoinTenantResponseModel]:
+
+    result: dict = service.join_tenant(
+        join_data.tenant_id,
+        current_user
+    )
+
+    return ResponseCode.OK.to_response(
+        data=UserJoinTenantResponseModel(
+            username=result["username"],
+            user_id=result["user_id"],
+            tenantname=result["tenantname"],
+            tenant_id=result["tenant_id"]
+        )
+    )
+
+
+
+
 
 

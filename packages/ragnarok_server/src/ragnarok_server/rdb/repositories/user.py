@@ -98,3 +98,19 @@ class UserRepository:
             logger.info(f"Created new user {username!r} (id={user.id})")
             return user
 
+    async def update_tenant_id(self, user: User, tenant_id: int) -> User:
+        """
+        Update the tenant_id of a user.
+        """
+        async with self._session_factory() as session:
+            stmt = select(User).where(User.id == user.id)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+
+            user.tenant_id = tenant_id
+            await session.commit()
+            await session.refresh(user)
+            logger.info(f"Updated tenant_id for user {user.username} to {tenant_id}")
+            return user
+
+
