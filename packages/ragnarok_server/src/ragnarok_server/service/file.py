@@ -3,6 +3,7 @@ from typing import Optional
 
 from ragnarok_server.rdb.models import File
 from ragnarok_server.rdb.repositories.file import FileRepository
+from ragnarok_server.service.store import store_service
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ class FileService:
             principal_type=principal_type,
             parent_id=None,
             knowledge_base_id=knowledge_base_id,
+            chunk_size=0,
         )
         return await self.file_repo.create_file(file)
 
@@ -78,6 +80,7 @@ class FileService:
         principal_id: int,
         principal_type: str,
         description: Optional[str] = None,
+        chunk_size: int = 0,
     ) -> File:
         parent_file = await self.file_repo.get_file_by_id(parent_id)
         location = parent_file.location.rstrip("/") + "/" + name
@@ -92,6 +95,7 @@ class FileService:
             principal_type=principal_type,
             parent_id=parent_id,
             knowledge_base_id=knowledge_base_id,
+            chunk_size=chunk_size,
         )
         # TODO: upload file to vdb and odb
         return await self.file_repo.create_file(file)
@@ -99,11 +103,17 @@ class FileService:
     async def get_file_list(self, folder_id: str) -> list[File]:
         return await self.file_repo.get_file_list(folder_id)
 
-    async def remove_file(self, file_id: str) -> bool:
+    async def remove_file(self, file_id: str, principal_type: str, principal_id: int) -> bool:
         file_list = await self.get_file_list(file_id)
         for file in file_list:
-            await self.remove_file(file.id)
-        # TODO: delete file from vdb and odb
+            await self.remove_file(file.id, principal_type, principal_id)
+        file = await self.file_repo.get_file_by_id(file_id)
+        if await store_service.check_file_exists(
+            principal_type=principal_type, principal_id=principal_id, file_id=file_id
+        ):
+            await store_service.delete_object(
+                principal_type=principal_type, principal_id=principal_id, file_id=file_id, chunk_size=file.chunk_size
+            )
         return await self.file_repo.remove_file(file_id)
 
     async def move_file(self, file_id: str, dest_folder_id: str) -> bool:
@@ -142,6 +152,9 @@ class FileService:
         file_list = await self.get_file_list(file_id)
         for file in file_list:
             await self.fix_file_location(file.id)
+
+    async def update_file_chunk_size(self, file_id: str, chunk_size: int) -> None:
+        await self.file_repo.update_file_chunk_size(file_id, chunk_size)
 
 
 file_service = FileService()

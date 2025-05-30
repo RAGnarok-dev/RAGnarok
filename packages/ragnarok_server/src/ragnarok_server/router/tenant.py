@@ -1,25 +1,25 @@
-from fastapi import Body
-from fastapi import Depends
+from fastapi import Body, Depends
 from fastapi import Response as FastAPIResponse
-from ragnarok_server.service.tenant import tenant_service
-from ragnarok_server.rdb.models import Tenant, User
+from ragnarok_server.auth import get_current_tenant
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError, NoResultFoundError
+from ragnarok_server.rdb.models import Tenant, User
 from ragnarok_server.router.base import (
     CustomAPIRouter,
-    TenantRegisterRequestModel,
-    TenantRegisterResponseModel,
-    TenantLoginResponseModel,
+    TenantGetUsersResponseModel,
+    TenantInfoResponseModel,
     TenantInviteRequestModel,
     TenantInviteResponseModel,
+    TenantLoginRequestModel,
+    TenantLoginResponseModel,
+    TenantRegisterRequestModel,
+    TenantRegisterResponseModel,
     TenantRemoveUserRequestModel,
     TenantRemoveUserResponseModel,
-    TenantLoginRequestModel,
-    TenantInfoResponseModel,
-    TenantGetUsersResponseModel,
     UserInfoResponseModel,
 )
-from ragnarok_server.auth import get_current_tenant
+from ragnarok_server.service.store import store_service
+from ragnarok_server.service.tenant import tenant_service
 
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
 
@@ -37,16 +37,14 @@ async def register_tenant(
     Register a new tenant account using email, password, and name.
     """
     tenant: Tenant = await service.register_tenant(
-        register_data.email,
-        register_data.password,
-        register_data.tenantname
+        register_data.email, register_data.password, register_data.tenantname
     )
+
+    await store_service.create_bucket(principal_type="tenant", principal_id=tenant.id)
+
     return ResponseCode.OK.to_response(
         data=TenantRegisterResponseModel(
-            id=tenant.id,
-            tenantname=tenant.name,
-            email=tenant.email,
-            is_active=tenant.is_active
+            id=tenant.id, tenantname=tenant.name, email=tenant.email, is_active=tenant.is_active
         )
     )
 
@@ -68,11 +66,7 @@ async def login_tenant(
     if not login_data.tenantname and not login_data.email:
         raise InvalidArgsError("Either tenantname or email must be provided")
 
-    result: dict = await service.login_tenant(
-        login_data.email,
-        login_data.tenantname,
-        login_data.password
-    )
+    result: dict = await service.login_tenant(login_data.email, login_data.tenantname, login_data.password)
 
     tenant = result["tenant"]
 
@@ -85,10 +79,9 @@ async def login_tenant(
             email=tenant.email,
             is_active=tenant.is_active,
             access_token=result["access_token"],
-            token_type=result["token_type"]
+            token_type=result["token_type"],
         )
     )
-
 
 
 @router.post(
@@ -110,10 +103,7 @@ async def invite_user_to_tenant_by_email(
 
     return ResponseCode.OK.to_response(
         data=TenantInviteResponseModel(
-            user_id=user.id,
-            username=user.username,
-            user_email=user.email,
-            tenant_id=data.tenant_id
+            user_id=user.id, username=user.username, user_email=user.email, tenant_id=data.tenant_id
         )
     )
 
@@ -144,24 +134,20 @@ async def remove_user_from_tenant(
         )
     )
 
+
 @router.get(
     "/info",
     summary="Get an existing tenant info",
     response_model=Response[TenantInfoResponseModel],
 )
 async def get_tenant_info(
-    current_tenant: Tenant = Depends(get_current_tenant),
-    service=Depends(lambda: tenant_service)
+    current_tenant: Tenant = Depends(get_current_tenant), service=Depends(lambda: tenant_service)
 ) -> Response[TenantInfoResponseModel]:
 
     result: dict = await service.get_tenant_info(current_tenant)
 
     return ResponseCode.OK.to_response(
-        data=TenantInfoResponseModel(
-            tenantname=result["tenantname"],
-            id=result["id"],
-            avatar="avatar"
-        )
+        data=TenantInfoResponseModel(tenantname=result["tenantname"], id=result["id"], avatar="avatar")
     )
 
 
@@ -171,26 +157,12 @@ async def get_tenant_info(
     response_model=Response[TenantGetUsersResponseModel],
 )
 async def get_all_users_info(
-    current_tenant: Tenant = Depends(get_current_tenant),
-    service=Depends(lambda: tenant_service)
+    current_tenant: Tenant = Depends(get_current_tenant), service=Depends(lambda: tenant_service)
 ) -> Response[TenantGetUsersResponseModel]:
     users: list[User] = await service.get_all_users_info(current_tenant)
 
-    user_data = [
-        UserInfoResponseModel(
-            id=user.id,
-            username=user.username,
-            avatar="avatar"
-        )
-        for user in users
-    ]
+    user_data = [UserInfoResponseModel(id=user.id, username=user.username, avatar="avatar") for user in users]
 
     return ResponseCode.OK.to_response(
-        data=TenantGetUsersResponseModel(
-            tenant_id=current_tenant.id,
-            tenantname=current_tenant.name,
-            users=user_data
-        )
+        data=TenantGetUsersResponseModel(tenant_id=current_tenant.id, tenantname=current_tenant.name, users=user_data)
     )
-
-

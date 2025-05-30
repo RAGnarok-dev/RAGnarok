@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Literal, Optional, TypedDict
 
 from qdrant_client import AsyncQdrantClient, models
@@ -16,7 +17,6 @@ class SearchPayloadDict(TypedDict, total=False):
 
 
 class QdrantPoint(TypedDict):
-    id: str | int
     vector: List[float]
     payload: PayloadDict
 
@@ -52,7 +52,7 @@ class QdrantClient:
     qdrant_client = AsyncQdrantClient(url="http://localhost:6333")
 
     @classmethod
-    async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> None:
+    async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> bool:
         """
         Initialize the collection
         Args:
@@ -65,7 +65,7 @@ class QdrantClient:
         exists = await cls.qdrant_client.collection_exists(collection_name=name)
 
         if exists:
-            raise Exception(f"Collection '{name}' already exists.")
+            return False
 
         await cls.qdrant_client.create_collection(
             collection_name=name,
@@ -82,6 +82,7 @@ class QdrantClient:
             PayloadIndex(filed_name="chunk_id", field_schema="keyword"),
         ]
         await cls.create_pyload_indexes(name=name, payload_indexes=payload_indexes)
+        return True
 
     @classmethod
     async def get_collection(cls, name: str):
@@ -128,17 +129,18 @@ class QdrantClient:
         Returns:
             None
         """
-        await cls.qdrant_client.upsert(
-            collection_name=name,
-            points=[
-                models.PointStruct(
-                    id=point["id"],
-                    vector=point["vector"],
-                    payload=point["payload"],
-                )
-                for point in points
-            ],
-        )
+        if len(points) > 0:
+            await cls.qdrant_client.upsert(
+                collection_name=name,
+                points=[
+                    models.PointStruct(
+                        id=str(uuid.uuid4()),
+                        vector=point["vector"],
+                        payload=point["payload"],
+                    )
+                    for point in points
+                ],
+            )
 
     @classmethod
     async def search_vectors(

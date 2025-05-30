@@ -2,6 +2,10 @@ from typing import Optional
 
 from fastapi import Depends
 from pydantic import BaseModel
+from ragnarok_core.components.official_components.embedding_component import (
+    EmbeddingModelEnum,
+)
+from ragnarok_core.components.official_components.text_split_component import SplitType
 from ragnarok_server.auth import TokenData, decode_access_token
 from ragnarok_server.common import ListResponseData, Response, ResponseCode
 from ragnarok_server.exceptions import HTTPException
@@ -20,7 +24,8 @@ class KnowledgeBaseResponse(BaseModel):
     id: int
     title: str
     description: Optional[str]
-    embedding_model_id: int
+    embedding_model_name: str
+    split_type: str
     root_file_id: str
     principal_id: int
     principal_type: str
@@ -32,7 +37,8 @@ class KnowledgeBaseResponse(BaseModel):
 class KnowledgeBaseCreateRequest(BaseModel):
     title: str
     description: str
-    embedding_model_id: int
+    embedding_model_name: str
+    split_type: str
 
 
 @router.post("/create")
@@ -43,7 +49,12 @@ async def create_knowledge_base(
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
 
     kb = await kb_service.create_knowledge_base(
-        request.title, request.description, request.embedding_model_id, token.principal_id, token.principal_type
+        request.title,
+        request.description,
+        request.embedding_model_name,
+        request.split_type,
+        token.principal_id,
+        token.principal_type,
     )
 
     await permission_service.create_or_update_permission(
@@ -94,6 +105,10 @@ class KnowledgeBaseRemoveRequest(BaseModel):
 async def remove_knowledge_base(
     request: KnowledgeBaseRemoveRequest, token: TokenData = Depends(decode_access_token)
 ) -> Response:
+    kb = await kb_service.get_knowledge_base_by_id(request.knowledge_base_id)
+    if kb is None:
+        return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Knowledge base not found")
+    await file_service.remove_file(kb.root_file_id, kb.principal_type, kb.principal_id)
     await kb_service.remove_knowledge_base(request.knowledge_base_id)
     return ResponseCode.OK.to_response()
 
@@ -154,3 +169,29 @@ async def get_permission(knowledge_base_id: int, token: TokenData = Depends(deco
     if permission is None:
         return ResponseCode.OK.to_response(data="none")
     return ResponseCode.OK.to_response(data=permission.permission_type)
+
+
+# embedding model and split type
+
+
+class EmbeddingModelResponse(BaseModel):
+    name: str
+    dim: int
+
+
+@router.get("/get_embedding_model")
+async def get_embedding_model() -> Response[ListResponseData[EmbeddingModelResponse]]:
+    embedding_models = [
+        EmbeddingModelResponse(name=model.value["name"], dim=model.value["dim"]) for model in EmbeddingModelEnum
+    ]
+    return ResponseCode.OK.to_response(data=ListResponseData(count=len(embedding_models), items=embedding_models))
+
+
+class SplitTypeResponse(BaseModel):
+    name: str
+
+
+@router.get("/get_split_type")
+async def get_split_type() -> Response[ListResponseData[SplitTypeResponse]]:
+    split_types = [SplitTypeResponse(name=split_type.value) for split_type in SplitType]
+    return ResponseCode.OK.to_response(data=ListResponseData(count=len(split_types), items=split_types))
