@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 from aiobotocore.session import get_session
 from ragnarok_toolkit import config
@@ -52,7 +53,7 @@ class MinioClient:
             logger.info(f"Uploaded {key} to {bucket_name}")
 
     @classmethod
-    async def download_object(cls, bucket_name: str, key: str) -> bytes:
+    async def download_object(cls, bucket_name: str, key: str) -> Dict[str, Any]:
         async with await cls._create_client() as minio_client:
             response = await minio_client.get_object(Bucket=bucket_name, Key=key)
             return {"content": await response["Body"].read(), "metadata": response.get("Metadata", {})}

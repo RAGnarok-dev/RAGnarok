@@ -108,7 +108,7 @@ async def remove_knowledge_base(
     kb = await kb_service.get_knowledge_base_by_id(request.knowledge_base_id)
     if kb is None:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Knowledge base not found")
-    await file_service.remove_file(kb.root_file_id, f"{kb.principal_type}-{kb.principal_id}")
+    await file_service.remove_file(kb.root_file_id, kb.principal_type, kb.principal_id)
     await kb_service.remove_knowledge_base(request.knowledge_base_id)
     return ResponseCode.OK.to_response()
 

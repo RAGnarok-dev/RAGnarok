@@ -107,8 +107,13 @@ class FileService:
         file_list = await self.get_file_list(file_id)
         for file in file_list:
             await self.remove_file(file.id, principal_type, principal_id)
-        if await store_service.check_file_exists(principal_type=principal_type, principal_id=principal_id, key=file_id):
-            await store_service.delete_object(principal_type=principal_type, principal_id=principal_id, key=file_id)
+        file = await self.file_repo.get_file_by_id(file_id)
+        if await store_service.check_file_exists(
+            principal_type=principal_type, principal_id=principal_id, file_id=file_id
+        ):
+            await store_service.delete_object(
+                principal_type=principal_type, principal_id=principal_id, file_id=file_id, chunk_size=file.chunk_size
+            )
         return await self.file_repo.remove_file(file_id)
 
     async def move_file(self, file_id: str, dest_folder_id: str) -> bool:

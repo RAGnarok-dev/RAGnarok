@@ -43,7 +43,6 @@ async def upload_file(
     description: Optional[str] = Form(None),
     file: UploadFile = File(...),
 ) -> Response[FileResponse | None]:
-
     name = await file_service.check_file_name_or_rename(folder_id=parent_id, file_name=file.filename)
 
     uploaded_file = await file_service.create_file(
@@ -85,7 +84,6 @@ class FolderCreateRequest(BaseModel):
 async def create_folder(
     request: FolderCreateRequest, token: TokenData = Depends(decode_access_token)
 ) -> Response[FileResponse | None]:
-
     if await file_service.check_file_name(request.name, request.parent_id):
         raise HTTPException(status_code=400, content="name already exists")
 
@@ -111,10 +109,9 @@ class FileRemoveRequest(BaseModel):
 @router.delete("/removeFile")
 @require_permission("write")
 async def remove_file(request: FileRemoveRequest, token: TokenData = Depends(decode_access_token)) -> Response:
-
     file = await file_service.get_file_by_id(request.file_id)
-    remove_file = await file_service.remove_file(request.file_id, f"{file.principal_type}-{file.principal_id}")
-    if remove_file:
+    success = await file_service.remove_file(request.file_id, file.principal_type, file.principal_id)
+    if success:
         return ResponseCode.OK.to_response()
     else:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="No Such File")
@@ -134,7 +131,6 @@ async def get_file(
 async def download_file(
     file_id: str, knowledge_base_id: int, token: TokenData = Depends(decode_access_token)
 ) -> StreamingResponse:
-
     file = await file_service.get_file_by_id(file_id)
     if file is None:
         raise HTTPException(status_code=101, content="No such file")
@@ -221,7 +217,6 @@ class FileMoveRequest(BaseModel):
 @router.patch("/moveFile")
 @require_permission("write")
 async def move_file(request: FileMoveRequest, token: TokenData = Depends(decode_access_token)) -> Response:
-
     file = await file_service.get_file_by_id(request.dest_folder_id)
     if file.type != "folder":
         return ResponseCode.INVALID_ARGS.to_response(detail="Destination is not a folder")
