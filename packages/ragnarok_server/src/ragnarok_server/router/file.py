@@ -123,6 +123,8 @@ async def get_file(
     file_id: str, knowledge_base_id: int, token: TokenData = Depends(decode_access_token)
 ) -> Response[FileResponse | None]:
     file = await file_service.get_file_by_id(file_id)
+    if file is None:
+        raise HTTPException(status_code=101, content="No such file")
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(file))
 
 
