@@ -7,6 +7,8 @@ from ragnarok_server.rdb.models import User
 from ragnarok_server.router.base import (
     CustomAPIRouter,
     UserInfoResponseModel,
+    UserJoinTenantRequestModel,
+    UserJoinTenantResponseModel,
     UserLoginRequestModel,
     UserLoginResponseModel,
     UserRegisterRequestModel,
@@ -63,6 +65,7 @@ async def login_user(
     user = result["user"]
 
     response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
+    response.headers["Access-Control-Request-Headers"] = "Authorization"
 
     return ResponseCode.OK.to_response(
         data=UserLoginResponseModel(
@@ -82,12 +85,34 @@ async def login_user(
     response_model=Response[UserInfoResponseModel],
 )
 async def get_user_info(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user), service=Depends(lambda: user_service)
 ) -> Response[UserInfoResponseModel]:
 
-    if not current_user:
-        raise InvalidArgsError("User does not exist, please log in")
+    result: dict = await service.get_user_info(current_user)
 
     return ResponseCode.OK.to_response(
-        data=UserInfoResponseModel(username=current_user.username, id=current_user.id, avatar="avatar")
+        data=UserInfoResponseModel(username=result["username"], id=result["id"], avatar="avatar")
+    )
+
+
+@router.post(
+    "/join_tenant",
+    summary="User want to join a tenant",
+    response_model=Response[UserJoinTenantResponseModel],
+)
+async def join_tenant(
+    join_data: UserJoinTenantRequestModel = Body(...),
+    current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service),
+) -> Response[UserJoinTenantResponseModel]:
+
+    result: dict = service.join_tenant(join_data.tenant_id, current_user)
+
+    return ResponseCode.OK.to_response(
+        data=UserJoinTenantResponseModel(
+            username=result["username"],
+            user_id=result["user_id"],
+            tenantname=result["tenantname"],
+            tenant_id=result["tenant_id"],
+        )
     )

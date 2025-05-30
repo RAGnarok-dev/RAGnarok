@@ -13,6 +13,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+# from sqlalchemy import Sequnce
+
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""

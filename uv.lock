@@ -2020,6 +2020,7 @@ dependencies = [
     { name = "ragnarok-core" },
     { name = "ragnarok-server" },
     { name = "ragnarok-toolkit" },
+    { name = "setuptools" },
 ]
 
 [package.dev-dependencies]
@@ -2037,6 +2038,7 @@ requires-dist = [
     { name = "ragnarok-core", editable = "packages/ragnarok_core" },
     { name = "ragnarok-server", editable = "packages/ragnarok_server" },
     { name = "ragnarok-toolkit", editable = "packages/ragnarok_toolkit" },
+    { name = "setuptools", specifier = ">=80.9.0" },
 ]
 
 [package.metadata.requires-dev]
