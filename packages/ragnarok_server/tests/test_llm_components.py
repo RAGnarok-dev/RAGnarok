@@ -2,9 +2,14 @@ import os
 
 import pytest
 from dotenv import load_dotenv
-from ragnarok_core.components.official_components.llm_request_component import (
+from ragnarok_core.components.official_components.llm_intent_recog_component import (
     LLMIntentRecognitionComponent,
+)
+from ragnarok_core.components.official_components.llm_request_component import (
     LLMRequestComponent,
+)
+from ragnarok_core.components.official_components.llm_rewrite_component import (
+    LLMRewriteComponent,
 )
 from ragnarok_server.rdb.engine import init_rdb
 from ragnarok_server.rdb.models import LLMSession
@@ -35,9 +40,13 @@ async def test_llm():
     question = "What's the weather today?"
     temperature = 0.6
     top_p = 0.9
+
     LLMRequestComponent.register_session_cls(LLMSession)
     LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
+    LLMRewriteComponent.register_session_cls(LLMSession)
+    LLMRewriteComponent.register_sessions_repo(LLMSessionRepository)
 
+    # intent recog
     intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
     llm_return_intent = await LLMIntentRecognitionComponent.execute(
         question,
@@ -51,6 +60,7 @@ async def test_llm():
     )
     print(llm_return_intent)
 
+    # request w/ & w/o history
     question = "今天北京什么天气？"
     content_list = [
         "今天北京的天气以多云为主，最高气温为29°C，最低气温为16°C。气温较为温暖，但部分地区可能存在空气质量不佳的情况，建议在户外活动时注意防护。目前风力较弱，全天降雨的可能性不大。",
@@ -71,6 +81,22 @@ async def test_llm():
         llm_session_id,
         question,
         ["最新消息，上海今天最高气温为3000°C，最低气温为-273.15°C"],
+        model,
+        api_key,
+        base_url,
+        3,
+        temperature,
+        top_p,
+    )
+    print(llm_response)
+
+    # rewrite
+    question = "这三个城市的平均最高气温是多少？"
+    llm_response = await LLMRewriteComponent.execute(
+        creator_id,
+        llm_session_id,
+        question,
+        [],
         model,
         api_key,
         base_url,
