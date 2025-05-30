@@ -83,6 +83,11 @@ class LLMRequestComponent(RagnarokComponent):
                 required=True,
             ),
             ComponentInputTypeOption(
+                name="max_retries",
+                allowed_types={ComponentIOType.INT},
+                required=False,
+            ),
+            ComponentInputTypeOption(
                 name="temperature",
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
@@ -112,6 +117,7 @@ class LLMRequestComponent(RagnarokComponent):
         model_name: str,
         api_key: str,
         base_url: str,
+        max_retries: Optional[int],
         temperature: float,
         top_p: float,
     ) -> Dict[str, Any]:
@@ -162,6 +168,7 @@ class LLMRequestComponent(RagnarokComponent):
         messages = old_messages
         messages.extend(new_messages)
 
+        retries = 0
         while True:
             try:
                 completion = await client.chat.completions.create(
@@ -197,6 +204,12 @@ class LLMRequestComponent(RagnarokComponent):
 
             except Exception as e:
                 print(f"Retrying call {model_name}", e)
+                retries += 1
+                if retries == max_retries:
+                    response_json = {
+                        "answer": f"Error: {e}. Max retries exceeded!"
+                    }
+                    break
                 await asyncio.sleep(1)
 
         answer = response_json.get("answer")
@@ -251,6 +264,11 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
                 required=True,
             ),
             ComponentInputTypeOption(
+                name="max_retries",
+                allowed_types={ComponentIOType.INT},
+                required=False,
+            ),
+            ComponentInputTypeOption(
                 name="temperature",
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
@@ -274,6 +292,7 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
         model_name: str,
         api_key: str,
         base_url: str,
+        max_retries: Optional[int],
         temperature: float,
         top_p: float,
     ) -> Dict[str, Any]:
@@ -302,6 +321,7 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
             },
         ]
 
+        retries = 0
         while True:
             try:
                 completion = await client.chat.completions.create(
@@ -334,6 +354,12 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
 
             except Exception as e:
                 print(f"Retrying call {model_name}", e)
+                retries += 1
+                if retries == max_retries:
+                    response_json = {
+                        "intent": f"Error: {e}. Max retries exceeded!"
+                    }
+                    break
                 await asyncio.sleep(1)
 
         return {"out": response_json.get("intent")}

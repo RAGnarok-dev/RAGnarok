@@ -35,11 +35,11 @@ async def test_llm():
     temperature = 0.6
     top_p = 0.9
 
-    # intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
-    # llm_return_intent = await LLMIntentRecognitionComponent.execute(
-    #     question, intents, model, api_key, base_url, temperature, top_p,
-    # )
-    # print(llm_return_intent)
+    intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
+    llm_return_intent = await LLMIntentRecognitionComponent.execute(
+        question, intents, model, api_key, base_url, 3, temperature, top_p,
+    )
+    print(llm_return_intent)
 
     question = "今天北京什么天气？"
     content_list = [
@@ -50,7 +50,7 @@ async def test_llm():
 
     creator_id = f"user-{user.id}"
     llm_response = await LLMRequestComponent.execute(
-        creator_id, None, question, content_list, model, api_key, base_url, temperature, top_p
+        creator_id, None, question, content_list, model, api_key, base_url, 3, temperature, top_p
     )
     print(llm_response)
 
@@ -64,6 +64,7 @@ async def test_llm():
         model,
         api_key,
         base_url,
+        3, 
         temperature,
         top_p,
     )
