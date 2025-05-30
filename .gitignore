@@ -173,7 +173,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-# alembic
-alembic/
-alembic.ini
+uv.lock
