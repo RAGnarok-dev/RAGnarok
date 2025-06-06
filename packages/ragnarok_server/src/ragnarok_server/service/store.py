@@ -64,12 +64,11 @@ class StoreService:
 
         # store into vdb
         points = [
-            await self._vector2Point(knowledge_base_id, file_id, chunk_id, vector)
-            for chunk_id, vector in enumerate(vectors)
+            await self._vector2Point(
+                vector=vector, kb_id=knowledge_base_id, file_id=file_id, chunk_id=chunk_id, text=chunk
+            )
+            for chunk_id, (vector, chunk) in enumerate(zip(vectors, chunks))
         ]
-        logger.info(f"points: {points}")
-        logger.info(f"len(points): {len(points)}")
-        logger.info(f"chunks: {chunks}")
         if len(points) > 0:
             await self._insert_vectors_to_vdb(embedding_model_name, points)
 
@@ -134,8 +133,8 @@ class StoreService:
     async def _insert_vectors_to_vdb(self, embedding_model_name: str, points: List[QdrantPoint]):
         await self.qdrant_client.insert_vectors(embedding_model_name, points)
 
-    async def _vector2Point(self, kb_id: int, file_id: str, chunk_id: int, vector: List[float]):
-        pyload = {"db_id": str(kb_id), "doc_id": file_id, "chunk_id": str(chunk_id)}
+    async def _vector2Point(self, vector: List[float], kb_id: int, file_id: str, chunk_id: int, text: str):
+        pyload = {"db_id": str(kb_id), "doc_id": file_id, "chunk_id": str(chunk_id), "text": text}
         return QdrantPoint(vector=vector, payload=pyload)
 
     # split
