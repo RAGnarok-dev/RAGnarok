@@ -11,7 +11,7 @@ from ragnarok_toolkit.component import (
 )
 
 
-class LLMRequestComponent(RagnarokComponent):
+class LLMRewriteComponent(RagnarokComponent):
     """
     Component class for send requests to LLM
     """
@@ -159,7 +159,7 @@ class LLMRequestComponent(RagnarokComponent):
             new_messages.append(
                 {
                     "role": "user",
-                    "content": f"Here is some background information for your reference:\n{knowledge_text}",
+                    "content": f"Here are some background information for your reference:\n{knowledge_text}",
                 }
             )
         # add question
@@ -167,7 +167,8 @@ class LLMRequestComponent(RagnarokComponent):
             {
                 "role": "user",
                 "content": f"Based on the history and retrieved information above, \
-                strictly use the same language to answer the question: {user_question}",
+                strictly use the same language to paraphrase or rewrite \
+                    the user question to its actual meaning: {user_question}",
             },
         )
 
@@ -186,7 +187,7 @@ class LLMRequestComponent(RagnarokComponent):
                     response_format={
                         "type": "json_schema",
                         "json_schema": {
-                            "name": "information_retrieving",
+                            "name": "question_rewriting",
                             "schema": {
                                 "type": "object",
                                 "properties": {

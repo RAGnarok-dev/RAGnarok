@@ -1,13 +1,18 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from ragnarok_core.vector_database import qdrant_client
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-from ragnarok_toolkit.vdb.qdrant_client import QdrantPoint, SearchPayloadDict
+from ragnarok_toolkit.vdb.qdrant_client import (
+    QdrantClient,
+    QdrantPoint,
+    SearchPayloadDict,
+)
+
+qdrant_client = QdrantClient()
 
 
 class StoreVDB(RagnarokComponent):
