@@ -6,14 +6,16 @@ from ragnarok_server import HTTPException
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.router.base import CustomAPIRouter, PipelineDetailModel
 from ragnarok_server.service.pipeline import pipeline_service
+from ragnarok_server.auth import TokenData, decode_access_token
 from starlette.responses import StreamingResponse
+from fastapi import Depends
+from ragnarok_server.common import ListResponseData
 
 router = CustomAPIRouter(prefix="/pipelines", tags=["Pipeline"])
 
 
 class PipelineCreateRequest(BaseModel):
     name: str
-    tenant_id: int
     content: str
     description: Optional[str] = None
     avatar: Optional[str] = None
@@ -32,19 +34,55 @@ class PipelineTestRequest(BaseModel):
     pipeline_content: str
     params: Dict[str, Any]
 
+class PipelineRemoveRequest(BaseModel):
+    pipeline_id: int
+
+
+class PipelineSaveRequest(BaseModel):
+    pipeline_id: int
+    name: Optional[str] = None
+    content: Optional[str] = None
+    description: Optional[str] = None
+    avatar: Optional[str] = None
+
+class PipelineBriefResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    avatar: Optional[str] = None
+    content: str                     
+
+    class Config:
+        from_attributes = True
+
+
+async def _check_owner(pipeline_id: int, token: TokenData):
+    pipeline = await pipeline_service.get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=404, content="Pipeline not found")
+    if (
+        pipeline.principal_id != token.principal_id
+        or pipeline.principal_type != token.principal_type
+    ):
+        raise HTTPException(status_code=403, content="Not the owner")
+    return pipeline
 
 @router.post("", response_model=Response[PipelineCreateResponse])
-async def create_pipeline(request: PipelineCreateRequest) -> Response[PipelineCreateResponse]:
-    # TODO 1. check tenant_id
-
-    # 2. validate json str format
+async def create_pipeline(request: PipelineCreateRequest,token: TokenData = Depends(decode_access_token)) -> Response[PipelineCreateResponse]:
+    # 1. validate json str format
     if not pipeline_service.validate_pipeline_str(request.content):
         raise HTTPException(status_code=400, content="Invalid pipeline content")
 
-    # 3. create pipeline
+    # 2. create pipeline
     pipeline = await pipeline_service.create_pipeline(
-        request.name, request.tenant_id, request.content, request.description, request.avatar
+        name=request.name,
+        principal_id=token.principal_id,                 
+        principal_type=token.principal_type,             
+        content=request.content,
+        description=request.description,
+        avatar=request.avatar,
     )
+
     return ResponseCode.OK.to_response(
         data=PipelineCreateResponse(pipeline=PipelineDetailModel.from_pipeline(pipeline))
     )
@@ -82,4 +120,48 @@ async def pipeline_test(request: PipelineTestRequest) -> StreamingResponse:
     return StreamingResponse(
         sse_wrapper(await pipeline_service.execute_pipeline(request.pipeline_content, request.params)),
         media_type="text/event-stream",
+    )
+
+@router.delete("/remove")
+async def remove_pipeline(
+    request: PipelineRemoveRequest, token: TokenData = Depends(decode_access_token)
+) -> Response:
+    await _check_owner(request.pipeline_id, token)
+    ok = await pipeline_service.remove_pipeline(request.pipeline_id)
+    if not ok:
+        return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
+    return ResponseCode.OK.to_response()
+
+@router.patch("/save")
+async def save_pipeline(
+    request: PipelineSaveRequest, token: TokenData = Depends(decode_access_token)
+) -> Response:
+    await _check_owner(request.pipeline_id, token)
+
+    if request.content and not pipeline_service.validate_pipeline_str(request.content):
+        raise HTTPException(status_code=400, content="Invalid pipeline content")
+    ok = await pipeline_service.update_pipeline(
+        pipeline_id=request.pipeline_id,
+        name=request.name,
+        content=request.content,
+        description=request.description,
+        avatar=request.avatar,
+    )
+    if not ok:
+        return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
+    return ResponseCode.OK.to_response()
+
+
+@router.get("/list")
+async def list_my_pipelines(
+    token: TokenData = Depends(decode_access_token),
+) -> Response[ListResponseData[PipelineBriefResponse]]:
+    pipelines = await pipeline_service.get_pipeline_list_by_creator(
+        token.principal_id, token.principal_type
+    )
+    return ResponseCode.OK.to_response(
+        data=ListResponseData(
+            count=len(pipelines),
+            items=[PipelineBriefResponse.model_validate(p) for p in pipelines],
+        )
     )

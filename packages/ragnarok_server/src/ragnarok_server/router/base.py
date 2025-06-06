@@ -144,7 +144,8 @@ class TenantGetUsersResponseModel(BaseModel):
 class PipelineDetailModel(BaseModel):
     id: int
     name: str
-    tenant_id: int
+    principal_id: int
+    principal_type: str
     content: str
     description: str | None
     avatar: str | None
@@ -154,7 +155,8 @@ class PipelineDetailModel(BaseModel):
         return cls(
             id=pipeline.id,
             name=pipeline.name,
-            tenant_id=pipeline.tenant_id,
+            principal_id=pipeline.principal_id,       
+            principal_type=pipeline.principal_type,   
             content=pipeline.content,
             description=pipeline.description,
             avatar=pipeline.avatar,
