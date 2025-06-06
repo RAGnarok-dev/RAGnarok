@@ -26,14 +26,20 @@ class PermissionService:
         return await self.permission_repo.create_or_update_permission(permission)
 
     async def delete_permission(
-        self, principal_id: int, principal_type: str, knowledge_base_id: int, permission_type: str
+        self, principal_id: int, principal_type: str, knowledge_base_id: int
     ) -> bool:
         return await self.permission_repo.delete_permission(
-            principal_id, principal_type, knowledge_base_id, permission_type
+            principal_id, principal_type, knowledge_base_id
         )
 
     async def get_permission(self, principal_id: int, principal_type: str, knowledge_base_id: int) -> Permission:
         return await self.permission_repo.get_permission(principal_id, principal_type, knowledge_base_id)
+
+    async def change_permission(self, knowledge_base_id: int, principal_id: int, principal_type: str,
+                                permission_type: str) -> bool:
+        return await self.permission_repo.change_permission(
+            knowledge_base_id, principal_id, principal_type, permission_type
+        )
 
 
 permission_service = PermissionService()

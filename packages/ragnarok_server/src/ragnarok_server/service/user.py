@@ -109,6 +109,12 @@ class UserService:
             "tenant_id": tenant.id
         }
 
+    async def update_user_avatar(self, user: User, new_avatar_url: str) -> User:
+        if not user:
+            raise NoResultFoundError("User does not exist")
+
+        return await self.repo.update_user_avatar(user.id, new_avatar_url)
+
 
 # Initialize the service instance
 user_service = UserService()

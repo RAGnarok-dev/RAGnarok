@@ -4,7 +4,7 @@ import logging
 
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import Permission
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 
 logger = logging.getLogger(__name__)
 
@@ -46,3 +46,13 @@ class PermissionRepository:
             )
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
+
+    @classmethod
+    async def change_permission(cls, knowledge_base_id: int, principal_id: int, principal_type: str, permission_type: str) -> bool:
+        async with get_async_session() as session:
+            stmt = update(Permission).where(
+                Permission.knowledge_base_id == knowledge_base_id,
+                Permission.principal_id == principal_id,
+                Permission.principal_type == principal_type).values(permission_type=permission_type)
+            result = await session.execute(stmt)
+            return result.rowcount > 0

@@ -11,7 +11,9 @@ from ragnarok_server.router.base import (
     UserLoginResponseModel,
     UserInfoResponseModel,
     UserJoinTenantRequestModel,
-    UserJoinTenantResponseModel
+    UserJoinTenantResponseModel,
+    UserUpdateAvatarRequestModel,
+    UserUpdateAvatarResponseModel,
 )
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.auth import get_current_user
@@ -125,6 +127,25 @@ async def join_tenant(
             user_id=result["user_id"],
             tenantname=result["tenantname"],
             tenant_id=result["tenant_id"]
+        )
+    )
+
+@router.post(
+    "/update_avatar",
+    summary="Update user avatar",
+    response_model=Response[UserUpdateAvatarResponseModel],
+)
+async def update_tenant_avatar(
+    data: UserUpdateAvatarRequestModel = Body(...),
+    current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service)
+) -> Response[UserUpdateAvatarResponseModel]:
+    new_user: User = await service.update_user_avatar(current_user, data.new_avatar_url)
+    return ResponseCode.OK.to_response(
+        data=UserUpdateAvatarResponseModel(
+            username=new_user.username,
+            id=new_user.id,
+            avatar=new_user.avatar_url
         )
     )
 

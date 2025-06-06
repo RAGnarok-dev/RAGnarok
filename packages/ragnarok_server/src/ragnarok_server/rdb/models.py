@@ -31,6 +31,12 @@ class Tenant(Base):
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    avatar_url: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",  # 默认头像URL
+        server_default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"  # 数据库层面默认值
+    )
 
 
 class User(Base):
@@ -52,6 +58,13 @@ class User(Base):
 
     # tenant_id: FK → tenants.id
     tenant_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    avatar_url: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",  # 默认头像URL
+        server_default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+        # 数据库层面默认值
+    )
 
 
 class EmbeddingModel(Base):

@@ -23,6 +23,8 @@ class KnowledgeBaseRepository:
     async def create_knowledge_base(cls, knowledge_base: KnowledgeBase) -> KnowledgeBase:
         async with get_async_session() as session:
             session.add(knowledge_base)
+            await session.commit()
+            await session.refresh(knowledge_base)
             return knowledge_base
 
     @classmethod

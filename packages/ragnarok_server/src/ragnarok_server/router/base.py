@@ -108,9 +108,11 @@ class TenantLoginResponseModel(BaseModel):
     access_token: str
     token_type: str
 
+
 class TenantInviteRequestModel(BaseModel):
     tenant_id: int
     user_email: EmailStr
+
 
 class TenantInviteResponseModel(BaseModel):
     user_id: int
@@ -123,11 +125,13 @@ class TenantRemoveUserRequestModel(BaseModel):
     tenant_id: int
     user_email: EmailStr
 
+
 class TenantRemoveUserResponseModel(BaseModel):
     user_id: int
     username: str
     user_email: EmailStr
     tenant_id: int
+
 
 class TenantInfoResponseModel(BaseModel):
     tenantname: str
@@ -139,6 +143,26 @@ class TenantGetUsersResponseModel(BaseModel):
     tenantname: str
     tenant_id: int
     users: list[UserInfoResponseModel]
+
+
+class TenantUpdateAvatarRequestModel(BaseModel):
+    new_avatar_url: str
+
+
+class TenantUpdateAvatarResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    avatar: str
+
+
+class UserUpdateAvatarRequestModel(BaseModel):
+    new_avatar_url: str
+
+
+class UserUpdateAvatarResponseModel(BaseModel):
+    username: str
+    id: int
+    avatar: str
 
 
 class PipelineDetailModel(BaseModel):

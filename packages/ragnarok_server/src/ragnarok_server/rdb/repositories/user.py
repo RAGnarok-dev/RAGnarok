@@ -4,7 +4,7 @@ from pydantic import EmailStr
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import User
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 logger = logging.getLogger(__name__)
 
@@ -113,4 +113,9 @@ class UserRepository:
             logger.info(f"Updated tenant_id for user {user.username} to {tenant_id}")
             return user
 
-
+    async def update_user_avatar(self, user_id: int, new_avatar_url: str) -> User:
+        async with self._session_factory() as session:
+            stmt = update(User).where(User.id == user_id).values(avatar_url=new_avatar_url).returning(User)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

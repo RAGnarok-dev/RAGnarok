@@ -18,6 +18,8 @@ from ragnarok_server.router.base import (
     TenantInfoResponseModel,
     TenantGetUsersResponseModel,
     UserInfoResponseModel,
+    TenantUpdateAvatarRequestModel,
+    TenantUpdateAvatarResponseModel,
 )
 from ragnarok_server.auth import get_current_tenant
 
@@ -190,6 +192,26 @@ async def get_all_users_info(
             tenant_id=current_tenant.id,
             tenantname=current_tenant.name,
             users=user_data
+        )
+    )
+
+
+@router.post(
+    "/update_avatar",
+    summary="Update tenant avatar",
+    response_model=Response[TenantUpdateAvatarResponseModel],
+)
+async def update_tenant_avatar(
+    data: TenantUpdateAvatarRequestModel = Body(...),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    service=Depends(lambda: tenant_service)
+) -> Response[TenantUpdateAvatarResponseModel]:
+    new_tenant: Tenant = await service.update_tenant_avatar(current_tenant, data.new_avatar_url)
+    return ResponseCode.OK.to_response(
+        data=TenantUpdateAvatarResponseModel(
+            tenantname=new_tenant.name,
+            tenant_id=new_tenant.id,
+            avatar=new_tenant.avatar_url
         )
     )
 

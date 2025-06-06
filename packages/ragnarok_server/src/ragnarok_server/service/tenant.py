@@ -102,6 +102,12 @@ class TenantService:
 
         return await self.repo.get_all_users_info(tenant.id)
 
+    async def update_tenant_avatar(self, tenant: Tenant, new_avatar_url: str) -> Tenant:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return await self.repo.update_tenant_avatar(tenant.id, new_avatar_url)
+
 
 tenant_service = TenantService()
 
