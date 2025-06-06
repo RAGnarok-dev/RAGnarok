@@ -44,3 +44,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 
 ODB_ENDPOINT = os.environ.get("ODB_ENDPOINT", "http://localhost:9000")
 ODB_ACCESS_KEY = os.environ.get("ODB_ACCESS_KEY", "fTdBpg4eFpmMWdojeCHO")
 ODB_SECRET_KEY = os.environ.get("ODB_SECRET_KEY", "LgkALYBJiQqiPTuQCfs017k7e8QEjrSPCdZLUki1")
+
+
+# ——— HF API KEY ─────────────────────────────────────────────────────────────
+HF_API_KEY = os.environ.get("HF_API_KEY", "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")
+
+# ———— SILICONFLOW API KEY ───────────────────────────────────────────────────
+SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "sf_1234567890")
