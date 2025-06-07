@@ -2,9 +2,6 @@ from typing import Optional
 
 from fastapi import Depends
 from pydantic import BaseModel
-from ragnarok_core.components.official_components.embedding_component import (
-    EmbeddingModelEnum,
-)
 from ragnarok_core.components.official_components.text_split_component import SplitType
 from ragnarok_server.auth import TokenData, decode_access_token
 from ragnarok_server.common import ListResponseData, Response, ResponseCode
@@ -16,6 +13,7 @@ from ragnarok_server.router.permission import require_permission
 from ragnarok_server.service.file import file_service
 from ragnarok_server.service.knowledge_base import kb_service
 from ragnarok_server.service.permission import permission_service
+from ragnarok_toolkit.model.embedding_model import EmbeddingModelEnum
 
 router = CustomAPIRouter(prefix="/knowledge_base", tags=["Knowledge Base"])
 

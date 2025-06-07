@@ -1,13 +1,11 @@
 import logging
 from typing import List
 
-from ragnarok_core.components.official_components.embedding_component import (
-    EmbeddingComponent,
-)
 from ragnarok_core.components.official_components.text_split_component import (
     SplitType,
     TextSplitComponent,
 )
+from ragnarok_toolkit.model.embedding_model import EmbeddingModel, EmbeddingModelEnum
 from ragnarok_toolkit.odb.minio_client import MinioClient
 from ragnarok_toolkit.vdb.qdrant_client import QdrantClient, QdrantPoint
 
@@ -18,13 +16,13 @@ class StoreService:
     minio_client: MinioClient
     qdrant_client: QdrantClient
     text_split_component: TextSplitComponent
-    embedding_component: EmbeddingComponent
+    embedding_model: EmbeddingModel
 
     def __init__(self):
         self.minio_client = MinioClient
         self.qdrant_client = QdrantClient
         self.text_split_component = TextSplitComponent
-        self.embedding_component = EmbeddingComponent
+        self.embedding_model = EmbeddingModel
 
     # deal with file
     async def store_file(
@@ -145,7 +143,8 @@ class StoreService:
     # embedding
     async def _embed_text(self, text_chunks: List[str], embedding_model_name: str) -> List[List[float]]:
         # TODO: component should be selected by embedding_model_name
-        result = await self.embedding_component.execute(text_chunks)
+        embedding_model = EmbeddingModelEnum(embedding_model_name)
+        result = await self.embedding_model.embedding(text_chunks, embedding_model)
         return result["vectors"]
 
 
