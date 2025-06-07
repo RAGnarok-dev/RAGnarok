@@ -1,6 +1,4 @@
-from ragnarok_core.components.official_components.embedding_component import (
-    EmbeddingModelEnum,
-)
+from ragnarok_toolkit.model.embedding_model import EmbeddingModelEnum
 from ragnarok_toolkit.vdb.qdrant_client import QdrantClient
 
 
