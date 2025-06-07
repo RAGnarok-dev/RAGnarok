@@ -149,7 +149,8 @@ class Pipeline(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    principal_id:   Mapped[int]  = mapped_column(Integer, nullable=False)
+    principal_type: Mapped[str]  = mapped_column(String,  nullable=False)
     content: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     avatar: Mapped[str | None] = mapped_column(String, nullable=True)
