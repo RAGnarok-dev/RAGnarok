@@ -34,6 +34,18 @@ class KnowledgeBaseResponse(BaseModel):
         from_attributes = True
 
 
+class GetAllKnowledgeBaseResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    embedding_model_name: str
+    split_type: str
+    root_file_id: str
+    principal_id: int
+    principal_type: str
+    permission: str
+
+
 class KnowledgeBaseCreateRequest(BaseModel):
     title: str
     description: str
@@ -93,7 +105,9 @@ async def change_permission(
     await permission_service.change_permission(
         request.knowledge_base_id, request.principal_id, request.principal_type, request.permission_type
     )
-    return ResponseCode.OK.to_response()
+    return ResponseCode.OK.to_response(
+
+    )
 
 
 class KnowledgeBaseRemoveRequest(BaseModel):
@@ -136,10 +150,10 @@ async def retitle_knowledge_base(
 @router.get("/list")
 async def list_knowledge_base(
     token: TokenData = Depends(decode_access_token),
-) -> Response[ListResponseData[KnowledgeBaseResponse]]:
-    kbs = await kb_service.get_knowledge_base_list_by_creator(token.principal_id, token.principal_type)
+) -> Response[ListResponseData[GetAllKnowledgeBaseResponse]]:
+    kbs = await kb_service.get_all_knowledge_bases(token.principal_id, token.principal_type)
     return ResponseCode.OK.to_response(
-        data=ListResponseData(count=len(kbs), items=[KnowledgeBaseResponse.model_validate(kb) for kb in kbs])
+        data=ListResponseData(count=len(kbs), items=[GetAllKnowledgeBaseResponse.model_validate(kb) for kb in kbs])
     )
 
 

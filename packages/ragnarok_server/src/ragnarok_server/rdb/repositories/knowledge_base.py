@@ -65,7 +65,7 @@ class KnowledgeBaseRepository:
             return result.rowcount > 0
 
     @classmethod
-    async def get_all_knowledge_bases(cls) -> List[KnowledgeBase]:
+    async def get_all_knowledge_bases(cls, id: int, type: str) -> List[KnowledgeBase]:
         """
         获取所有知识库
         Returns:
