@@ -165,3 +165,15 @@ async def list_my_pipelines(
             items=[PipelineBriefResponse.model_validate(p) for p in pipelines],
         )
     )
+
+@router.get("/get")
+async def get_pipeline(
+    pipeline_id: int,                               
+    token: TokenData = Depends(decode_access_token),
+) -> Response[PipelineDetailModel]:
+    pipeline = await pipeline_service.get_pipeline_by_id(pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=404, content="Pipeline not found")
+    return ResponseCode.OK.to_response(
+        data=PipelineDetailModel.from_pipeline(pipeline)
+    )
