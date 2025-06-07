@@ -33,6 +33,13 @@ class EmbeddingModelEnum(Enum):  # small embedding model
         ),
     }
 
+    @classmethod
+    def from_name(cls, name: str) -> "EmbeddingModelEnum":
+        for model in cls:
+            if model.value["name"] == name:
+                return model
+        raise ValueError(f"Invalid embedding model name: {name}")
+
 
 class EmbeddingModel:
 

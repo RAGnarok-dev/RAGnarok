@@ -24,7 +24,7 @@ class RetrievalComponent(RagnarokComponent):
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="embedding_model",
+                name="embedding_model_name",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
             ),
@@ -76,7 +76,7 @@ class RetrievalComponent(RagnarokComponent):
     @classmethod
     async def execute(
         cls,
-        embedding_model: str,
+        embedding_model_name: str,
         db_id_list: List[str],
         query: str,
         score_threshold: Optional[float] = None,
@@ -86,7 +86,7 @@ class RetrievalComponent(RagnarokComponent):
         base_url: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         try:
-            embedding_model = EmbeddingModelEnum(embedding_model)
+            embedding_model = EmbeddingModelEnum.from_name(embedding_model_name)
         except ValueError:
             raise ValueError(f"Invalid embedding model: {embedding_model}, no such model in EmbeddingModelEnum")
 
