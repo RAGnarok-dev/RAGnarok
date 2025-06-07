@@ -143,9 +143,9 @@ class StoreService:
     # embedding
     async def _embed_text(self, text_chunks: List[str], embedding_model_name: str) -> List[List[float]]:
         # TODO: component should be selected by embedding_model_name
-        embedding_model = EmbeddingModelEnum(embedding_model_name)
+        embedding_model = EmbeddingModelEnum.from_name(embedding_model_name)
         result = await self.embedding_model.embedding(text_chunks, embedding_model)
-        return result["vectors"]
+        return result
 
 
 store_service = StoreService()

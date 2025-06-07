@@ -93,7 +93,7 @@ async def test_execute():
     )
 
     result = await RetrievalComponent.execute(
-        embedding_model=embedding_model,
+        embedding_model_name=embedding_model.value["name"],
         db_id_list=["1"],
         query=query,
         score_threshold=0,
