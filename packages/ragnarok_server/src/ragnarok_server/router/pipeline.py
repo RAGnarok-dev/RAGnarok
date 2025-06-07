@@ -10,6 +10,8 @@ from ragnarok_server.auth import TokenData, decode_access_token
 from starlette.responses import StreamingResponse
 from fastapi import Depends
 from ragnarok_server.common import ListResponseData
+from pydantic import BaseModel, field_validator
+import json
 
 router = CustomAPIRouter(prefix="/pipelines", tags=["Pipeline"])
 
@@ -19,6 +21,7 @@ class PipelineCreateRequest(BaseModel):
     content: str
     description: Optional[str] = None
     avatar: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None     
 
 
 class PipelineCreateResponse(BaseModel):
@@ -44,13 +47,27 @@ class PipelineSaveRequest(BaseModel):
     content: Optional[str] = None
     description: Optional[str] = None
     avatar: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
 
 class PipelineBriefResponse(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
     avatar: Optional[str] = None
-    content: str                     
+    content: str
+    params: Optional[Dict[str, Any]] = None         
+
+    @field_validator("params", mode="before")
+    @classmethod
+    def parse_params(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except ValueError:
+                return None
+        return v
 
     class Config:
         from_attributes = True
@@ -81,6 +98,7 @@ async def create_pipeline(request: PipelineCreateRequest,token: TokenData = Depe
         content=request.content,
         description=request.description,
         avatar=request.avatar,
+        params=request.params,
     )
 
     return ResponseCode.OK.to_response(
@@ -138,14 +156,15 @@ async def save_pipeline(
 ) -> Response:
     await _check_owner(request.pipeline_id, token)
 
-    if request.content and not pipeline_service.validate_pipeline_str(request.content):
-        raise HTTPException(status_code=400, content="Invalid pipeline content")
+    # if request.content and not pipeline_service.validate_pipeline_str(request.content):
+    #     raise HTTPException(status_code=400, content="Invalid pipeline content")
     ok = await pipeline_service.update_pipeline(
         pipeline_id=request.pipeline_id,
         name=request.name,
         content=request.content,
         description=request.description,
         avatar=request.avatar,
+        params=request.params,
     )
     if not ok:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
@@ -162,7 +181,10 @@ async def list_my_pipelines(
     return ResponseCode.OK.to_response(
         data=ListResponseData(
             count=len(pipelines),
-            items=[PipelineBriefResponse.model_validate(p) for p in pipelines],
+            items = [
+                PipelineBriefResponse.model_validate(p, from_attributes=True)  
+                for p in pipelines
+            ]
         )
     )
 
@@ -171,9 +193,6 @@ async def get_pipeline(
     pipeline_id: int,                               
     token: TokenData = Depends(decode_access_token),
 ) -> Response[PipelineDetailModel]:
-    pipeline = await pipeline_service.get_pipeline_by_id(pipeline_id)
-    if pipeline is None:
-        raise HTTPException(status_code=404, content="Pipeline not found")
-    return ResponseCode.OK.to_response(
-        data=PipelineDetailModel.from_pipeline(pipeline)
-    )
+    pipeline = await _check_owner(pipeline_id, token)
+    data = PipelineDetailModel.from_pipeline(pipeline)
+    return ResponseCode.OK.to_response(data=data)

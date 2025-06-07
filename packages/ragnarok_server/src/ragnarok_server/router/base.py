@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from pydantic import BaseModel,EmailStr
 from ragnarok_server.rdb.models import Pipeline
+import json
 
 class CustomAPIRouter(APIRouter):
     """
@@ -149,6 +150,7 @@ class PipelineDetailModel(BaseModel):
     content: str
     description: str | None
     avatar: str | None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_pipeline(cls, pipeline: Pipeline) -> "PipelineDetailModel":
@@ -160,4 +162,5 @@ class PipelineDetailModel(BaseModel):
             content=pipeline.content,
             description=pipeline.description,
             avatar=pipeline.avatar,
+            params=json.loads(pipeline.params) if pipeline.params else None, 
         )

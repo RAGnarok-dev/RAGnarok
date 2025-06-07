@@ -4,6 +4,7 @@ from typing import Any, AsyncGenerator, Dict, Optional, List
 from ragnarok_core.pipeline.pipeline_entity import PipelineEntity, PipelineExecutionInfo
 from ragnarok_server.rdb.models import Pipeline
 from ragnarok_server.rdb.repositories.pipeline import PipelineRepository
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class PipelineService:
         content: str,
         description: Optional[str] = None,
         avatar: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> Pipeline:
         pipeline = Pipeline(
             name=name,
@@ -43,6 +45,7 @@ class PipelineService:
             content=content,
             description=description,
             avatar=avatar,
+            params=json.dumps(params) if params else None,
         )
         return await self.pipeline_repo.create_pipeline(pipeline)
 
@@ -65,9 +68,10 @@ class PipelineService:
         content: Optional[str] = None,
         description: Optional[str] = None,
         avatar: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> bool:
         return await self.pipeline_repo.update_pipeline(
-            pipeline_id, name=name, content=content, description=description, avatar=avatar
+            pipeline_id, name=name, content=content, description=description, avatar=avatar,params=json.dumps(params) if params is not None else None,
         )
     
     async def get_pipeline_list_by_creator(

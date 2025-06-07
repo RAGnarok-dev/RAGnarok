@@ -33,6 +33,7 @@ class PipelineRepository:
         content: Optional[str] = None,
         description: Optional[str] = None,
         avatar: Optional[str] = None,
+        params: Optional[str] = None, 
     ) -> bool:
         values = {k: v for k, v in locals().items() if k not in {"cls", "pipeline_id"} and v is not None}
         if not values:
