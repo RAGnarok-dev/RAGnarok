@@ -77,6 +77,7 @@ async def login_tenant(
     tenant = result["tenant"]
 
     response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
+    response.headers["Access-Control-Request-Headers"] = "Authorization"
 
     return ResponseCode.OK.to_response(
         data=TenantLoginResponseModel(
