@@ -50,7 +50,7 @@ class QdrantClient:
     Vector database using qdrant
     """
 
-    qdrant_client = AsyncQdrantClient(url="http://localhost:6333")
+    qdrant_client = AsyncQdrantClient(url="http://81.70.198.42:6333")
 
     @classmethod
     async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> bool:
