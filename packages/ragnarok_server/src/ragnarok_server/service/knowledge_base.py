@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 from ragnarok_server.rdb.models import KnowledgeBase
 from ragnarok_server.rdb.repositories.knowledge_base import KnowledgeBaseRepository
@@ -17,12 +17,19 @@ class KnowledgeBaseService:
         return await self.kb_repo.validate_title(title, principal_id, principal_type)
 
     async def create_knowledge_base(
-        self, title: str, description: str, embedding_model_id: int, principal_id: int, principal_type: str
+        self,
+        title: str,
+        description: str,
+        embedding_model_name: str,
+        split_type: str,
+        principal_id: int,
+        principal_type: str,
     ) -> KnowledgeBase:
         kb = KnowledgeBase(
             title=title,
             description=description,
-            embedding_model_id=embedding_model_id,
+            embedding_model_name=embedding_model_name,
+            split_type=split_type,
             root_file_id="",
             principal_id=principal_id,
             principal_type=principal_type,
@@ -51,6 +58,16 @@ class KnowledgeBaseService:
             List[KnowledgeBase]: 知识库列表
         """
         return await self.kb_repo.get_all_knowledge_bases()
+
+    async def modify_knowledge_base(
+        self,
+        kb_id: int,
+        title: Optional[str],
+        description: Optional[str],
+        embedding_model_name: Optional[str],
+        split_type: Optional[str],
+    ) -> bool:
+        return await self.kb_repo.modify_knowledge_base(kb_id, title, description, embedding_model_name, split_type)
 
 
 kb_service = KnowledgeBaseService()

@@ -44,4 +44,4 @@ class PipelineNode:
             param: None for param in [input_option["name"] for input_option in component.input_options()]
         }
         # num of the unprepared input data
-        self.waiting_num = len(component.input_options())
+        self.waiting_num = 0

@@ -1,3 +1,4 @@
+import logging
 import socket
 
 import pytest
@@ -8,10 +9,14 @@ from ragnarok_core.components.official_components.vector_database_component impo
     RetrieveComponent,
     StoreVDB,
 )
-from ragnarok_core.object_database import minio_client
 from ragnarok_core.pipeline.pipeline_entity import PipelineEntity
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
-from ragnarok_core.vector_database import qdrant_client
+from ragnarok_toolkit.odb.minio_client import MinioClient
+from ragnarok_toolkit.vdb.qdrant_client import QdrantClient
+
+logger = logging.getLogger(__name__)
+minio_client = MinioClient()
+qdrant_client = QdrantClient()
 
 
 # 尝试连本地端口，判断服务是否存在
@@ -65,7 +70,7 @@ async def test_store_vdb():
             },
         ],
     ):
-        print(output)
+        logger.info(output)
 
 
 @pytest.mark.skipif(not is_qdrant_running(), reason="Qdrant service not running on localhost:6333")

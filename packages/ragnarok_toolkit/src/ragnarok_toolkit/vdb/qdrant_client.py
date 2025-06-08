@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Literal, Optional, TypedDict
 
 from qdrant_client import AsyncQdrantClient, models
@@ -8,15 +9,15 @@ class PayloadDict(TypedDict):
     db_id: str
     doc_id: str
     chunk_id: str
+    text: str
 
 
-class SearchPayloadDict(TypedDict, total=False):
+class SearchPayloadDict(TypedDict, total=False):  # all fields are optional
     db_id: str
     doc_id: str
 
 
 class QdrantPoint(TypedDict):
-    id: str | int
     vector: List[float]
     payload: PayloadDict
 
@@ -49,10 +50,10 @@ class QdrantClient:
     Vector database using qdrant
     """
 
-    qdrant_client = AsyncQdrantClient(url="http://localhost:6333")
+    qdrant_client = AsyncQdrantClient(url="http://81.70.198.42:6333")
 
     @classmethod
-    async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> None:
+    async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> bool:
         """
         Initialize the collection
         Args:
@@ -65,7 +66,7 @@ class QdrantClient:
         exists = await cls.qdrant_client.collection_exists(collection_name=name)
 
         if exists:
-            raise Exception(f"Collection '{name}' already exists.")
+            return False
 
         await cls.qdrant_client.create_collection(
             collection_name=name,
@@ -82,6 +83,7 @@ class QdrantClient:
             PayloadIndex(filed_name="chunk_id", field_schema="keyword"),
         ]
         await cls.create_pyload_indexes(name=name, payload_indexes=payload_indexes)
+        return True
 
     @classmethod
     async def get_collection(cls, name: str):
@@ -128,23 +130,25 @@ class QdrantClient:
         Returns:
             None
         """
-        await cls.qdrant_client.upsert(
-            collection_name=name,
-            points=[
-                models.PointStruct(
-                    id=point["id"],
-                    vector=point["vector"],
-                    payload=point["payload"],
-                )
-                for point in points
-            ],
-        )
+        if len(points) > 0:
+            await cls.qdrant_client.upsert(
+                collection_name=name,
+                points=[
+                    models.PointStruct(
+                        id=str(uuid.uuid4()),
+                        vector=point["vector"],
+                        payload=point["payload"],
+                    )
+                    for point in points
+                ],
+            )
 
     @classmethod
-    async def search_vectors(
+    async def search(
         cls,
-        name: str,
+        collection_name: str,
         query_vector: List[float],
+        score_threshold: float = 0,
         top_k: int = 10,
         payload_filters: Optional[List[SearchPayloadDict]] = None,
     ):
@@ -159,9 +163,10 @@ class QdrantClient:
             List[str]: List of chunk_id that results belong to
         """
         search_result = await cls.qdrant_client.query_points(
-            collection_name=name,
+            collection_name=collection_name,
             query=query_vector,
             limit=top_k,
+            score_threshold=score_threshold,
             query_filter=models.Filter(
                 should=[
                     models.Filter(
@@ -175,10 +180,10 @@ class QdrantClient:
             ),
         )
 
-        chunk_ids = []
+        texts = []
         for point in search_result.points:
-            chunk_ids.append(point.payload["chunk_id"])
-        return chunk_ids
+            texts.append(point.payload["text"])
+        return texts
 
     @classmethod
     async def delete_vectors(cls, name: str, ids: List[int]) -> None:

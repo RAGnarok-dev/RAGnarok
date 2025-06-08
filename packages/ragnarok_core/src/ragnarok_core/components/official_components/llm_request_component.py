@@ -3,8 +3,6 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from openai import AsyncOpenAI
-from ragnarok_server.rdb.models import LLMSession
-from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -83,6 +81,11 @@ class LLMRequestComponent(RagnarokComponent):
                 required=True,
             ),
             ComponentInputTypeOption(
+                name="max_retries",
+                allowed_types={ComponentIOType.INT},
+                required=False,
+            ),
+            ComponentInputTypeOption(
                 name="temperature",
                 allowed_types={ComponentIOType.FLOAT},
                 required=True,
@@ -103,6 +106,14 @@ class LLMRequestComponent(RagnarokComponent):
         )
 
     @classmethod
+    def register_sessions_repo(cls, repo):
+        cls.llm_sessions_repo = repo
+
+    @classmethod
+    def register_session_cls(cls, session_class):
+        cls.LLMSession = session_class
+
+    @classmethod
     async def execute(
         cls,
         creator_id: str,
@@ -112,6 +123,7 @@ class LLMRequestComponent(RagnarokComponent):
         model_name: str,
         api_key: str,
         base_url: str,
+        max_retries: Optional[int],
         temperature: float,
         top_p: float,
     ) -> Dict[str, Any]:
@@ -119,15 +131,15 @@ class LLMRequestComponent(RagnarokComponent):
         execute the async component function
         """
         if llm_session_id is None:
-            llm_session = LLMSession(
+            llm_session = cls.LLMSession(
                 title="untitled session",
                 created_by=creator_id,
                 history={"messages": []},
             )
-            llm_session = await LLMSessionRepository.create_session(llm_session)
+            llm_session = await cls.llm_sessions_repo.create_session(llm_session)
             llm_session_id = llm_session.id
         else:
-            llm_session = await LLMSessionRepository.get_session_by_id(llm_session_id)
+            llm_session = await cls.llm_sessions_repo.get_session_by_id(llm_session_id)
 
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
@@ -162,6 +174,7 @@ class LLMRequestComponent(RagnarokComponent):
         messages = old_messages
         messages.extend(new_messages)
 
+        retries = 0
         while True:
             try:
                 completion = await client.chat.completions.create(
@@ -197,6 +210,10 @@ class LLMRequestComponent(RagnarokComponent):
 
             except Exception as e:
                 print(f"Retrying call {model_name}", e)
+                retries += 1
+                if retries == max_retries:
+                    response_json = {"answer": f"Error: {e}. Max retries exceeded!"}
+                    break
                 await asyncio.sleep(1)
 
         answer = response_json.get("answer")
@@ -206,137 +223,5 @@ class LLMRequestComponent(RagnarokComponent):
                 "content": answer,
             }
         )
-        await LLMSessionRepository.update_dialog_history(llm_session_id, {"messages": new_messages})
+        await cls.llm_sessions_repo.update_dialog_history(llm_session_id, {"messages": new_messages})
         return {"out": answer, "llm_session_id": llm_session_id}
-
-    def __new__(cls, *args, **kwargs):
-        raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
-
-
-class LLMIntentRecognitionComponent(RagnarokComponent):
-    """
-    Component class for LLM-based intent recognition.
-    """
-
-    DESCRIPTION: str = "Classify user intent using LLM based on provided intents and user input"
-
-    ENABLE_HINT_CHECK: bool = True
-
-    @classmethod
-    def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
-        return (
-            ComponentInputTypeOption(
-                name="user_question",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="intent_dict",
-                allowed_types={ComponentIOType.DICT},  # expects JSON string
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="model_name",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="api_key",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="base_url",
-                allowed_types={ComponentIOType.STRING},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="temperature",
-                allowed_types={ComponentIOType.FLOAT},
-                required=True,
-            ),
-            ComponentInputTypeOption(
-                name="top_p",
-                allowed_types={ComponentIOType.FLOAT},
-                required=True,
-            ),
-        )
-
-    @classmethod
-    def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return (ComponentOutputTypeOption(name="out", type=ComponentIOType.STRING),)
-
-    @classmethod
-    async def execute(
-        cls,
-        user_question: str,
-        intent_dict: dict,
-        model_name: str,
-        api_key: str,
-        base_url: str,
-        temperature: float,
-        top_p: float,
-    ) -> Dict[str, Any]:
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-
-        # Format the intent list for the prompt
-        intent_text = "\n".join([f"{k}: {v}" for k, v in intent_dict.items()])
-
-        messages = [
-            {
-                "role": "system",
-                "content": "You are an AI assistant that classifies the user's intent"
-                "based on a list of predefined categories.",
-            },
-            {
-                "role": "user",
-                "content": f"""
-                    Here are the possible intent categories:
-                    {intent_text}
-
-                    Classify the following question into one of the intent
-                    categories by returning only the intent number (e.g., "0", "1", "2", etc.).
-
-                    Question: {user_question}
-                    """,
-            },
-        ]
-
-        while True:
-            try:
-                completion = await client.chat.completions.create(
-                    model=model_name,
-                    messages=messages,
-                    timeout=30,
-                    temperature=temperature,
-                    top_p=top_p,
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "intent_classification",
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "intent": {
-                                        "type": "number",
-                                    },
-                                },
-                                "required": ["intent"],
-                                "additionalProperties": False,
-                            },
-                            "strict": True,
-                        },
-                    },
-                )
-                response = completion.choices[0].message.content
-                response_json = json.loads(response)
-                break
-
-            except Exception as e:
-                print(f"Retrying call {model_name}", e)
-                await asyncio.sleep(1)
-
-        return {"out": response_json.get("intent")}
-
-    def __new__(cls, *args, **kwargs):
-        raise TypeError(f"Class {cls.__name__} and its subclasses cannot be instantiated.")
