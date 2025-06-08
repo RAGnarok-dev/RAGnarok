@@ -1,11 +1,19 @@
 import asyncio
 import logging
+import os
 from typing import List
 
 import pytest
+from ragnarok_core.components.official_components.llm_request_component import LLMRequestComponent
 from ragnarok_core.components.official_components.retrieval_component import (
     RetrievalComponent,
 )
+from ragnarok_core.pipeline.pipeline_entity import PipelineEntity
+from ragnarok_core.pipeline.pipeline_node import PipelineNode
+from ragnarok_server.rdb.engine import init_rdb
+from ragnarok_server.rdb.models import LLMSession
+from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
+from ragnarok_server.rdb.repositories.user import UserRepository
 from ragnarok_toolkit.model.embedding_model import EmbeddingModel, EmbeddingModelEnum
 from ragnarok_toolkit.vdb.qdrant_client import QdrantClient
 
@@ -24,7 +32,7 @@ async def store_vdb(texts: List[str]):
     if await qdrant_client.init_collection(name=embedding_model.value["name"], dim=embedding_model.value["dim"]):
         logger.info(f"Collection {embedding_model.value['name']} initialized successfully")
     else:
-        logger.error(f"Collection {embedding_model.value['name']} already exists")
+        logger.info(f"Collection {embedding_model.value['name']} already exists")
 
     await qdrant_client.insert_vectors(
         name=embedding_model.value["name"],
@@ -46,7 +54,22 @@ async def retrieve_from_vdb(query: str, top_k: int) -> List[str]:
     return result
 
 @pytest.mark.asyncio
-async def test_retrieval():
+async def test_retrieval_llm_pipeline():
+    assert LLMRequestComponent.validate()
+
+    # init LLM sessions db
+    await init_rdb()
+    user_repo = UserRepository()
+    await LLMSessionRepository.delete_all_sessions()
+    user = await user_repo.get_user_by_username("alex")
+    if user is None:
+        user = await user_repo.create_user("alex", "aa@bb.cc", "abcdef#")
+        assert user.id != 0
+    print(user, user.id)
+    LLMRequestComponent.register_session_cls(LLMSession)
+    LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
+
+    # init text in vdb
     # texts you want to store
     texts = [
         """
@@ -92,11 +115,66 @@ async def test_retrieval():
         中秋节的月饼文化等，都在保持传统的同时融入了现代元素，让传统文化焕发出新的活力。
         """,
     ]
-    # delete vdb
-    # await delete_vdb(embedding_model.value["name"])
     # store texts into vdb
     await store_vdb(texts)
-    # retrieve from vdb
-    result = await retrieve_from_vdb("告诉我周末的天气", 2)
-    print(result)
+
+    # build pipeline
+    connection1 = PipelineNode.NodeConnection(
+        from_node_id="1",
+        to_node_id="2",
+        from_node_output_name="texts",
+        to_node_input_name="content_list",
+    )
+    node1 = PipelineNode(
+        node_id="1", component=RetrievalComponent, forward_node_info=(connection1,), pos={"x": 1.1, "y": 1.2}
+    )
+    node2 = PipelineNode(
+        node_id="2", component=LLMRequestComponent, forward_node_info=(), output_name="node2_res", pos={"x": 1.1, "y": 1.2}
+    )
+    nodes = [node1, node2]
+    connections = [connection1]
+    pipeline = PipelineEntity(
+        {
+            "1": node1,
+            "2": node2,
+        },
+        {
+            f"node_{node.node_id}_{input_option.get('name')}" : (node.node_id, input_option.get("name"))
+            for node in nodes
+            for input_option in node.component.input_options() 
+            if input_option.get('name') not in [connection.to_node_input_name for connection in connections]
+        },
+    )
+    constant_kwargs = {
+        **{"node_1_"+k: v for k, v in {
+            "embedding_model_name": embedding_model.value["name"],
+            "db_id_list": ["1"],
+            "score_threshold": 0,
+        }.items()}, 
+        **{"node_2_"+k: v for k, v in {
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "base_url": os.getenv("base_url"),
+            "model_name": "gemini-2.5-flash-preview-04-17",
+            "temperature": 0.6,
+            "top_p": 0.9,
+            "max_retries": 3,
+        }.items()}
+    }
+
+    # run pipeline
+    question = "告诉我中国的传统节日"
+    print("\n\n")
+    async for output in pipeline.run_async(
+        **constant_kwargs,
+        node_1_query=question,
+        node_1_top_n=2,
+        # node_1_rerank_model = "Qwen/QwQ-32B",
+        # node_1_api_key = "sk-zxtyymbewqpbrrwtnwyissinlpwogrhlbeisiekaufdddiij",
+        # node_1_base_url = "https://api.siliconflow.cn/v1",
+
+        node_2_creator_id=f"user-{user.id}",
+        node_2_llm_session_id=None,
+        node_2_user_question=question,
+    ):
+        print(output)
 
