@@ -37,6 +37,10 @@ class BaiduSearchComponent(RagnarokComponent):
                 name="content",
                 type=ComponentIOType.STRING_LIST,
             ),
+            ComponentOutputTypeOption(
+                name="urls",
+                type=ComponentIOType.STRING_LIST,
+            ),
         )
 
     @classmethod
@@ -68,8 +72,8 @@ class BaiduSearchComponent(RagnarokComponent):
                     {"content": re.sub("<em>|</em>", "", '<a href="' + url + '">' + title + "</a>    " + body)}
                     for url, title, body in zip(url_res, title_res, body_res)
                 ]
-                return {"content": baidu_res}
-            return {"content": ""}
+                return {"content": baidu_res, "urls": url_res}
+            return {"content": [], "urls": []}
 
         except Exception:
-            return {"content": ""}
+            return {"content": [], "urls": []}
