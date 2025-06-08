@@ -16,6 +16,7 @@ dependencies = [
     "openai",
     "beautifulsoup4>=4.13.4",
     "crawl4ai>=0.6.3",
+    "wikipedia>=1.4.0",
 ]
 
 [build-system]
