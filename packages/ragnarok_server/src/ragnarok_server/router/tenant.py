@@ -19,6 +19,8 @@ from ragnarok_server.router.base import (
     UserInfoResponseModel,
     TenantUpdateAvatarRequestModel,
     TenantUpdateAvatarResponseModel,
+    TenantChangeNameRequestModel,
+    TenantChangeNameResponseModel,
 )
 from ragnarok_server.service.store import store_service
 from ragnarok_server.service.tenant import tenant_service
@@ -73,6 +75,7 @@ async def login_tenant(
     tenant = result["tenant"]
 
     response.headers["Authorization"] = f"{result['token_type']} {result['access_token']}"
+    response.headers["Access-Control-Request-Headers"] = "Authorization"
 
     return ResponseCode.OK.to_response(
         data=TenantLoginResponseModel(
@@ -163,7 +166,7 @@ async def get_all_users_info(
 ) -> Response[TenantGetUsersResponseModel]:
     users: list[User] = await service.get_all_users_info(current_tenant)
 
-    user_data = [UserInfoResponseModel(id=user.id, username=user.username, avatar="avatar") for user in users]
+    user_data = [UserInfoResponseModel(id=user.id, username=user.username, email=user.email, avatar="avatar") for user in users]
 
     return ResponseCode.OK.to_response(
         data=TenantGetUsersResponseModel(tenant_id=current_tenant.id, tenantname=current_tenant.name, users=user_data)
@@ -189,3 +192,22 @@ async def update_tenant_avatar(
         )
     )
 
+@router.post(
+    '/change_name',
+    summary="Change tennat name",
+    response_model=Response[TenantChangeNameResponseModel],
+)
+async def change_name(
+        data: TenantChangeNameRequestModel = Body(...),
+        current_tenant: Tenant = Depends(get_current_tenant),
+        service=Depends(lambda: tenant_service)
+) -> Response[TenantChangeNameResponseModel]:
+
+    tenant: Tenant = await service.change_name(current_tenant, data.new_name)
+
+    return ResponseCode.OK.to_response(
+        data=TenantChangeNameResponseModel(
+            tenantname=tenant.name,
+            id=tenant.id
+        )
+    )

@@ -115,6 +115,29 @@ class UserService:
 
         return await self.repo.update_user_avatar(user.id, new_avatar_url)
 
+    async def get_all_users_info(self, user: User) -> dict:
+        if not user:
+            raise NoResultFoundError("User does not exist")
+
+        tenant_id = user.tenant_id
+        tenant_repo = TenantRepository()
+        users = await tenant_repo.get_all_users_info(tenant_id)
+
+        tenant = await tenant_repo.get_tenant_by_id(tenant_id)
+        if not tenant:
+            raise NoResultFoundError("Tenant does not exist")
+
+        return {
+            "users": users,
+            "tenant": tenant
+        }
+
+    async def change_name(self, user: User, new_name: str) -> User:
+        if not user:
+            raise NoResultFoundError("User does not exist")
+
+        return await self.repo.change_name(user.id, new_name)
+
 
 # Initialize the service instance
 user_service = UserService()

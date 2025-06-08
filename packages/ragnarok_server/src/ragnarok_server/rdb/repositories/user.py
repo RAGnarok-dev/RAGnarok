@@ -119,3 +119,10 @@ class UserRepository:
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one_or_none()
+
+    async def change_name(self, user_id: int, new_name: str) -> User:
+        async with self._session_factory() as session:
+            stmt = update(User).where(User.id == user_id).values(username=new_name).returning(User)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

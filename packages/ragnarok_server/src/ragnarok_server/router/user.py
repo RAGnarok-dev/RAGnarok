@@ -4,6 +4,8 @@ from ragnarok_server.auth import get_current_user
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError
 from ragnarok_server.rdb.models import User
+import base64
+import os
 from ragnarok_server.router.base import (
     CustomAPIRouter,
     UserInfoResponseModel,
@@ -15,6 +17,9 @@ from ragnarok_server.router.base import (
     UserLoginResponseModel,
     UserRegisterRequestModel,
     UserRegisterResponseModel,
+    UserGetUsersResponseModel,
+    UserChangeNameRequestModel,
+    UserChangeNameResponseModel,
 )
 from ragnarok_server.service.store import store_service
 from ragnarok_server.service.user import user_service
@@ -129,12 +134,65 @@ async def update_tenant_avatar(
     current_user: User = Depends(get_current_user),
     service=Depends(lambda: user_service)
 ) -> Response[UserUpdateAvatarResponseModel]:
-    new_user: User = await service.update_user_avatar(current_user, data.new_avatar_url)
+    header, encoded = data.avatar_base64.split(',', 1)
+    file_data = base64.b64decode(encoded)
+
+    filename = f"{current_user.id}-user.png"
+    save_dir = "static/avatars"
+
+    os.makedirs(save_dir, exist_ok=True)
+    filepath = os.path.join(save_dir, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(file_data)
+
+    new_avatar_url = f"/static/avatars/{filename}"
+
+    new_user: User = await service.update_user_avatar(current_user, new_avatar_url)
     return ResponseCode.OK.to_response(
         data=UserUpdateAvatarResponseModel(
             username=new_user.username,
             id=new_user.id,
             avatar=new_user.avatar_url
+        )
+    )
+
+@router.get(
+    "/get_users",
+    summary="User obtain all user information belonging the same tenant",
+    response_model=Response[UserGetUsersResponseModel],
+)
+async def get_all_users_info(
+    current_user: User = Depends(get_current_user), service=Depends(lambda: user_service)
+) -> Response[UserGetUsersResponseModel]:
+
+    result: dict = await service.get_all_users_info(current_user)
+
+    users = result["users"]
+    tenant = result["tenant"]
+    user_data = [UserInfoResponseModel(id=user.id, username=user.username, email=user.email, avatar=user.avatar_url) for user in users]
+
+    return ResponseCode.OK.to_response(
+        data=UserGetUsersResponseModel(tenant_id=tenant.id, tenantname=tenant.name, users=user_data)
+    )
+
+
+@router.post(
+    '/change-name',
+    summary="Change user name",
+    response_model=Response[UserChangeNameResponseModel],
+)
+async def change_name(
+    data: UserChangeNameRequestModel = Body(...),
+    current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service)
+) -> Response[UserChangeNameResponseModel]:
+    user: User = await service.change_name(current_user, data.new_name)
+
+    return ResponseCode.OK.to_response(
+        data=UserChangeNameResponseModel(
+            username=user.username,
+            id=user.id
         )
     )
 

@@ -82,6 +82,8 @@ class TenantService:
             "id": tenant.id,
             "avatar": "avatar"
         }
+
+
     async def invite_user_to_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
         """
         Invite a user to join a tenant by email.
@@ -107,6 +109,12 @@ class TenantService:
             raise InvalidArgsError("Tenant does not exist, please log in")
 
         return await self.repo.update_tenant_avatar(tenant.id, new_avatar_url)
+
+    async def change_name(self, tenant: Tenant, new_name: str) -> Tenant:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return await self.repo.change_name(tenant.id, new_name)
 
 
 tenant_service = TenantService()

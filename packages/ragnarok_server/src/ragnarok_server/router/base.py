@@ -67,6 +67,7 @@ class UserLoginResponseModel(BaseModel):
 class UserInfoResponseModel(BaseModel):
     username: str
     id: int
+    email: EmailStr
     avatar: str
 
 
@@ -145,8 +146,31 @@ class TenantGetUsersResponseModel(BaseModel):
     users: list[UserInfoResponseModel]
 
 
+class UserGetUsersResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    users: list[UserInfoResponseModel]
+
+
+class UserChangeNameRequestModel(BaseModel):
+    new_name: str
+
+
+class UserChangeNameResponseModel(BaseModel):
+    username: str
+    id: int
+
+
+class TenantChangeNameRequestModel(BaseModel):
+    new_name: str
+
+
+class TenantChangeNameResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+
 class TenantUpdateAvatarRequestModel(BaseModel):
-    new_avatar_url: str
+    avatar_base64: str
 
 
 class TenantUpdateAvatarResponseModel(BaseModel):
@@ -156,7 +180,7 @@ class TenantUpdateAvatarResponseModel(BaseModel):
 
 
 class UserUpdateAvatarRequestModel(BaseModel):
-    new_avatar_url: str
+    avatar_base64: str
 
 
 class UserUpdateAvatarResponseModel(BaseModel):

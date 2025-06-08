@@ -137,6 +137,8 @@ class TenantRepository:
             logger.info(f"User {user.username} (email={user.email}) removed from tenant id={tenant_id}")
             return user
 
+
+
     async def get_all_users_info(self, tenant_id: int) -> list[User]:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(User).where(User.tenant_id == tenant_id)
@@ -147,6 +149,13 @@ class TenantRepository:
     async def update_tenant_avatar(self, tenant_id: int, new_avatar_url: str) -> Tenant:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = update(Tenant).where(Tenant.id == tenant_id).values(avatar_url=new_avatar_url).returning(Tenant)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()
+
+    async def change_name(self, tenant_id: int, new_name: str) -> Tenant:
+        async with self._session_factory() as session:
+            stmt = update(Tenant).where(Tenant.id == tenant_id).values(tenantname=new_name).returning(Tenant)
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one_or_none()
