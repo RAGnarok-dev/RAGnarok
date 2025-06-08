@@ -1,7 +1,8 @@
 import logging
 from typing import Optional
-from pydantic import EmailStr
+
 from passlib.context import CryptContext
+from pydantic import EmailStr
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import User
 from sqlalchemy import select
@@ -28,7 +29,7 @@ class UserRepository:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(User).where(User.username == username)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
+        return result.scalar_one_or_none()
 
     async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """
@@ -37,8 +38,8 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(User).where(User.id == user_id)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
-        
+        return result.scalar_one_or_none()
+
     async def get_user_by_email(self, email: EmailStr) -> Optional[User]:
         """
         Fetch a User by email.
@@ -46,10 +47,11 @@ class UserRepository:
         async with self._session_factory() as session:
             stmt = select(User).where(User.email == email)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
+        return result.scalar_one_or_none()
 
-    async def authenticate(self, username: Optional[str] = None, email: Optional[EmailStr] = None, password: str = "") -> \
-    Optional[User]:
+    async def authenticate(
+        self, username: Optional[str] = None, email: Optional[EmailStr] = None, password: str = ""
+    ) -> Optional[User]:
         """
         Validate credentials using either username or email. Returns the User if successful, else None.
         """
@@ -64,11 +66,11 @@ class UserRepository:
             user = await self.get_user_by_email(email)
 
         if not user:
-            logger.debug(f"Authentication failed: user not found.")
+            logger.debug("Authentication failed: user not found.")
             return None
 
         if not pwd_context.verify(password, user.password_hash):
-            logger.debug(f"Authentication failed: invalid password.")
+            logger.debug("Authentication failed: invalid password.")
             return None
 
         return user
@@ -96,7 +98,7 @@ class UserRepository:
             await session.commit()
             await session.refresh(user)
             logger.info(f"Created new user {username!r} (id={user.id})")
-            return user
+        return user
 
     async def update_tenant_id(self, user: User, tenant_id: int) -> User:
         """
@@ -111,6 +113,4 @@ class UserRepository:
             await session.commit()
             await session.refresh(user)
             logger.info(f"Updated tenant_id for user {user.username} to {tenant_id}")
-            return user
-
-
+        return user
