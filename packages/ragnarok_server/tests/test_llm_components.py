@@ -32,6 +32,10 @@ async def test_llm():
         user = await user_repo.create_user("alex", "aa@bb.cc", "abcdef#")
         assert user.id != 0
     print(user, user.id)
+    LLMRequestComponent.register_session_cls(LLMSession)
+    LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
+    LLMRewriteComponent.register_session_cls(LLMSession)
+    LLMRewriteComponent.register_sessions_repo(LLMSessionRepository)
 
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("base_url")
@@ -40,11 +44,6 @@ async def test_llm():
     question = "What's the weather today?"
     temperature = 0.6
     top_p = 0.9
-
-    LLMRequestComponent.register_session_cls(LLMSession)
-    LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
-    LLMRewriteComponent.register_session_cls(LLMSession)
-    LLMRewriteComponent.register_sessions_repo(LLMSessionRepository)
 
     # intent recog
     intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
