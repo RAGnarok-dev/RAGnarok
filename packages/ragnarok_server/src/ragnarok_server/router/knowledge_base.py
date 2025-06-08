@@ -43,8 +43,17 @@ class KnowledgeBaseCreateRequest(BaseModel):
 async def create_knowledge_base(
     request: KnowledgeBaseCreateRequest, token: TokenData = Depends(decode_access_token)
 ) -> Response[KnowledgeBaseResponse]:
+    # validate
     if not await kb_service.validate_title(request.title, token.principal_id, token.principal_type):
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
+    try:
+        EmbeddingModelEnum.from_name(request.embedding_model_name)
+    except ValueError:
+        raise HTTPException(status_code=400, content="Invalid embedding model name")
+    try:
+        SplitType(request.split_type)
+    except ValueError:
+        raise HTTPException(status_code=400, content="Invalid split type")
 
     kb = await kb_service.create_knowledge_base(
         request.title,
@@ -128,6 +137,47 @@ async def retitle_knowledge_base(
         raise HTTPException(status_code=400, content="Knowledge base title already exists")
     await file_service.rename_root_file(kb.root_file_id, request.title)
     await kb_service.retitle_knowledge_base(request.knowledge_base_id, request.title)
+    return ResponseCode.OK.to_response()
+
+
+class KnowledgeBaseModifyRequest(BaseModel):
+    knowledge_base_id: int
+    title: Optional[str] = None
+    description: Optional[str] = None
+    embedding_model_name: Optional[str] = None
+    split_type: Optional[str] = None
+
+
+@router.patch("/modify")
+@require_permission("admin")
+async def modify_knowledge_base(
+    request: KnowledgeBaseModifyRequest, token: TokenData = Depends(decode_access_token)
+) -> Response:
+
+    # check validate
+    kb = await kb_service.get_knowledge_base_by_id(request.knowledge_base_id)
+    if kb is None:
+        raise HTTPException(status_code=400, content="Knowledge base not found")
+    if request.title is not None and not await kb_service.validate_title(
+        request.title, kb.principal_id, kb.principal_type
+    ):
+        raise HTTPException(status_code=400, content="Knowledge base title already exists")
+    if request.embedding_model_name is not None:
+        try:
+            EmbeddingModelEnum.from_name(request.embedding_model_name)
+        except ValueError:
+            raise HTTPException(status_code=400, content="Invalid embedding model name")
+    if request.split_type is not None:
+        try:
+            SplitType(request.split_type)
+        except ValueError:
+            raise HTTPException(status_code=400, content="Invalid split type")
+
+    # TODO modify embedding model and split type
+
+    await kb_service.modify_knowledge_base(
+        request.knowledge_base_id, request.title, request.description, request.embedding_model_name, request.split_type
+    )
     return ResponseCode.OK.to_response()
 
 
