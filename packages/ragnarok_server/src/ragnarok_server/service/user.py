@@ -82,7 +82,8 @@ class UserService:
         return {
             "username": user.username,
             "id": user.id,
-            "avatar": "avatar"
+            "email": user.email,
+            "avatar": user.avatar_url
         }
 
     async def join_tenant(self, tenant_id: int, user: User,) -> dict:

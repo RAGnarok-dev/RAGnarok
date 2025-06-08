@@ -98,7 +98,12 @@ async def get_user_info(
     result: dict = await service.get_user_info(current_user)
 
     return ResponseCode.OK.to_response(
-        data=UserInfoResponseModel(username=result["username"], id=result["id"], avatar="avatar")
+        data=UserInfoResponseModel(
+            username=result["username"],
+            id=result["id"],
+            email=result["email"],
+            avatar=result["avatar"]
+        )
     )
 
 
