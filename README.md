@@ -10,10 +10,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv pip install -e . && pytest
 ```
 
+> 爬虫工具 使用 playwright 工具，需要使用 `playwright install` 命令来安装
+
 3. 推送代码到main分支或创建PR时，GitHub Actions会自动执行：
 - 核心模块测试
 - 服务端测试
 - 工具包测试
 
 4. 确保对`.github/workflows/ci.yml`文件有写入权限
-

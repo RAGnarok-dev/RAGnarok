@@ -1,5 +1,5 @@
 # /ragnarok_server/rdb/repositories/knowledge_base.py
-from typing import List
+from typing import List, Optional
 
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import KnowledgeBase
@@ -73,3 +73,25 @@ class KnowledgeBaseRepository:
             stmt = select(KnowledgeBase)
             result = await session.execute(stmt)
         return result.scalars().all()
+
+    @classmethod
+    async def modify_knowledge_base(
+        cls,
+        kb_id: int,
+        title: Optional[str],
+        description: Optional[str],
+        embedding_model_name: Optional[str],
+        split_type: Optional[str],
+    ) -> bool:
+        async with get_async_session() as session:
+            stmt = update(KnowledgeBase).where(KnowledgeBase.id == kb_id)
+            if title is not None:
+                stmt = stmt.values(title=title)
+            if description is not None:
+                stmt = stmt.values(description=description)
+            if embedding_model_name is not None:
+                stmt = stmt.values(embedding_model_name=embedding_model_name)
+            if split_type is not None:
+                stmt = stmt.values(split_type=split_type)
+            result = await session.execute(stmt)
+        return result.rowcount > 0
