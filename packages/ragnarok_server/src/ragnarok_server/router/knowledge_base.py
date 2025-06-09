@@ -1,7 +1,7 @@
 import base64
 from typing import Optional
 import os
-from fastapi import Depends, Body
+from fastapi import Depends, Body, Path
 from pydantic import BaseModel
 from ragnarok_core.components.official_components.text_split_component import SplitType
 from ragnarok_server.auth import TokenData, decode_access_token
@@ -171,6 +171,7 @@ class KnowledgeBaseModifyRequest(BaseModel):
     split_type: Optional[str] = None
     avatar: str
 
+
 class KnowledgeBaseModifyResponse(BaseModel):
     title: str
     avatar: str
@@ -267,15 +268,15 @@ async def get_permission(knowledge_base_id: int, token: TokenData = Depends(deco
 
 
 @router.get(
-    "/get_permission_list",
+    "/knowledge_base/{knowledgeBaseId}/get_permission_list",
     summary="Get permission list by kb_id",
     response_model=Response[KbGetPermissionListResponseModel]
 )
 async def get_permission_list(
-    data: KbGetPermissionListRequestModel = Body(...),
+    knowledge_base_id: str = Path(..., description="Knowledge Base ID"),
     service=Depends(lambda: permission_service),
 ) -> Response[KbGetPermissionListResponseModel]:
-    result: list[Permission] = await service.get_permission_list(data.knowledge_base_id)
+    result: list[Permission] = await service.get_permission_list(knowledge_base_id)
     permission_lists = []
     for permission in result:
         if permission.principal_type == 'user':
