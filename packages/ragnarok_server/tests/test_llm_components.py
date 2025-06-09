@@ -2,11 +2,17 @@ import os
 
 import pytest
 from dotenv import load_dotenv
-from ragnarok_core.components.official_components.llm_request_component import (
+from ragnarok_core.components.official_components.llm_intent_recog_component import (
     LLMIntentRecognitionComponent,
+)
+from ragnarok_core.components.official_components.llm_request_component import (
     LLMRequestComponent,
 )
+from ragnarok_core.components.official_components.llm_rewrite_component import (
+    LLMRewriteComponent,
+)
 from ragnarok_server.rdb.engine import init_rdb
+from ragnarok_server.rdb.models import LLMSession
 from ragnarok_server.rdb.repositories.llm_session import LLMSessionRepository
 from ragnarok_server.rdb.repositories.user import UserRepository
 
@@ -26,6 +32,10 @@ async def test_llm():
         user = await user_repo.create_user("alex", "aa@bb.cc", "abcdef#")
         assert user.id != 0
     print(user, user.id)
+    LLMRequestComponent.register_session_cls(LLMSession)
+    LLMRequestComponent.register_sessions_repo(LLMSessionRepository)
+    LLMRewriteComponent.register_session_cls(LLMSession)
+    LLMRewriteComponent.register_sessions_repo(LLMSessionRepository)
 
     api_key = os.getenv("OPENAI_API_KEY")
     base_url = os.getenv("base_url")
@@ -35,12 +45,21 @@ async def test_llm():
     temperature = 0.6
     top_p = 0.9
 
-    # intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
-    # llm_return_intent = await LLMIntentRecognitionComponent.execute(
-    #     question, intents, model, api_key, base_url, temperature, top_p,
-    # )
-    # print(llm_return_intent)
+    # intent recog
+    intents = {"0": "检索百科", "1": "查询天气", "2": "进行创作"}
+    llm_return_intent = await LLMIntentRecognitionComponent.execute(
+        question,
+        intents,
+        model,
+        api_key,
+        base_url,
+        3,
+        temperature,
+        top_p,
+    )
+    print(llm_return_intent)
 
+    # request w/ & w/o history
     question = "今天北京什么天气？"
     content_list = [
         "今天北京的天气以多云为主，最高气温为29°C，最低气温为16°C。气温较为温暖，但部分地区可能存在空气质量不佳的情况，建议在户外活动时注意防护。目前风力较弱，全天降雨的可能性不大。",
@@ -50,7 +69,7 @@ async def test_llm():
 
     creator_id = f"user-{user.id}"
     llm_response = await LLMRequestComponent.execute(
-        creator_id, None, question, content_list, model, api_key, base_url, temperature, top_p
+        creator_id, None, question, content_list, model, api_key, base_url, 3, temperature, top_p
     )
     print(llm_response)
 
@@ -64,6 +83,23 @@ async def test_llm():
         model,
         api_key,
         base_url,
+        3,
+        temperature,
+        top_p,
+    )
+    print(llm_response)
+
+    # rewrite
+    question = "这三个城市的平均最高气温是多少？"
+    llm_response = await LLMRewriteComponent.execute(
+        creator_id,
+        llm_session_id,
+        question,
+        [],
+        model,
+        api_key,
+        base_url,
+        3,
         temperature,
         top_p,
     )

@@ -15,10 +15,13 @@ from ragnarok_core.components.official_components.text_split_component import (
 from ragnarok_core.components.official_components.vector_database_component import (
     StoreVDB,
 )
-from ragnarok_core.object_database import minio_client
 from ragnarok_core.pipeline.pipeline_entity import PipelineEntity
 from ragnarok_core.pipeline.pipeline_node import PipelineNode
-from ragnarok_core.vector_database import qdrant_client
+from ragnarok_toolkit.odb.minio_client import MinioClient
+from ragnarok_toolkit.vdb.qdrant_client import QdrantClient
+
+minio_client = MinioClient()
+qdrant_client = QdrantClient()
 
 
 @pytest.mark.asyncio

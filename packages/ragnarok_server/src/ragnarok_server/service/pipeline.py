@@ -1,9 +1,10 @@
 import logging
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional, List
 
 from ragnarok_core.pipeline.pipeline_entity import PipelineEntity, PipelineExecutionInfo
 from ragnarok_server.rdb.models import Pipeline
 from ragnarok_server.rdb.repositories.pipeline import PipelineRepository
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +29,23 @@ class PipelineService:
         return True
 
     async def create_pipeline(
-        self, name: str, tenant_id: int, content: str, description: Optional[str] = None, avatar: Optional[str] = None
+        self,
+        name: str,
+        principal_id: int,          
+        principal_type: str,        
+        content: str,
+        description: Optional[str] = None,
+        avatar: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
     ) -> Pipeline:
         pipeline = Pipeline(
             name=name,
-            tenant_id=tenant_id,
+            principal_id=principal_id,        
+            principal_type=principal_type,    
             content=content,
             description=description,
             avatar=avatar,
+            params=json.dumps(params) if params else None,
         )
         return await self.pipeline_repo.create_pipeline(pipeline)
 
@@ -47,6 +57,28 @@ class PipelineService:
     ) -> AsyncGenerator[PipelineExecutionInfo, None]:
         pipeline_entity = PipelineEntity.from_json_str(content)
         return pipeline_entity.run_async(**params)
+    
+    async def remove_pipeline(self, pipeline_id: int) -> bool:
+        return await self.pipeline_repo.remove_pipeline(pipeline_id)
 
+    async def update_pipeline(
+        self,
+        pipeline_id: int,
+        name: Optional[str] = None,
+        content: Optional[str] = None,
+        description: Optional[str] = None,
+        avatar: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        return await self.pipeline_repo.update_pipeline(
+            pipeline_id, name=name, content=content, description=description, avatar=avatar,params=json.dumps(params) if params is not None else None,
+        )
+    
+    async def get_pipeline_list_by_creator(
+        self, principal_id: int, principal_type: str
+    ) -> List[Pipeline]:
+        return await self.pipeline_repo.get_pipeline_list_by_creator(
+            principal_id, principal_type
+        )
 
 pipeline_service = PipelineService()

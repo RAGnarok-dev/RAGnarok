@@ -1,6 +1,7 @@
 import urllib.parse
 from contextlib import asynccontextmanager
 
+from ragnarok_core.vector_database import init_vector_database
 from ragnarok_server.rdb.models import Base
 from ragnarok_toolkit import config
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -22,6 +23,9 @@ async def init_rdb():
     async with sql_engine.begin() as conn:
         # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+
+    # init qdrant
+    await init_vector_database()
 
 
 @asynccontextmanager

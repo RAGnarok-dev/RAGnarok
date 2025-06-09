@@ -1,8 +1,8 @@
 import logging
 from typing import Optional
-from pydantic import EmailStr
 
 from passlib.context import CryptContext
+from pydantic import EmailStr
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import Tenant, User
 from sqlalchemy import select, update
@@ -21,7 +21,7 @@ class TenantRepository:
 
     def __init__(self, session_factory=get_async_session):
         self._session_factory = session_factory
-        
+
     async def get_tenant_by_tenantname(self, tenantname: str) -> Optional[Tenant]:
         """
         Fetch a Tenant by tenantname.
@@ -29,8 +29,8 @@ class TenantRepository:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(Tenant).where(Tenant.name == tenantname)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
-        
+        return result.scalar_one_or_none()
+
     async def get_tenant_by_email(self, email: EmailStr) -> Optional[Tenant]:
         """
         Fetch a Tenant by email.
@@ -38,7 +38,7 @@ class TenantRepository:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(Tenant).where(Tenant.email == email)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
+        return result.scalar_one_or_none()
 
     async def get_tenant_by_id(self, tenant_id: int) -> Optional[Tenant]:
         """
@@ -47,11 +47,11 @@ class TenantRepository:
         async with self._session_factory() as session:  # type: AsyncSession
             stmt = select(Tenant).where(Tenant.id == tenant_id)
             result = await session.execute(stmt)
-            return result.scalar_one_or_none()
-        
+        return result.scalar_one_or_none()
+
     async def create_tenant(
-        self, 
-        tenantname: str, 
+        self,
+        tenantname: str,
         email: EmailStr,
         password: str,
     ) -> Tenant:
@@ -70,10 +70,11 @@ class TenantRepository:
             await session.commit()
             await session.refresh(tenant)
             logger.info(f"Created new tenant {tenantname!r}(id={tenant.id})")
-            return tenant
+        return tenant
 
-    async def authenticate(self, tenantname: Optional[str] = None, email: Optional[EmailStr] = None, password: str = "") -> \
-            Optional[Tenant]:
+    async def authenticate(
+        self, tenantname: Optional[str] = None, email: Optional[EmailStr] = None, password: str = ""
+    ) -> Optional[Tenant]:
         """
         Validate credentials using either tenantname or email. Returns the Tenant if successful, else None.
         """
@@ -88,11 +89,11 @@ class TenantRepository:
             tenant = await self.get_tenant_by_email(email)
 
         if not tenant:
-            logger.debug(f"Authentication failed: tenant not found.")
+            logger.debug("Authentication failed: tenant not found.")
             return None
 
         if not pwd_context.verify(password, tenant.password_hash):
-            logger.debug(f"Authentication failed: invalid password.")
+            logger.debug("Authentication failed: invalid password.")
             return None
 
         return tenant
@@ -115,7 +116,7 @@ class TenantRepository:
             await session.refresh(user)
 
             logger.info(f"User {user.username} (email={user.email}) is now part of tenant id={tenant_id}")
-            return user
+        return user
 
     async def remove_user_from_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
         """
@@ -135,7 +136,7 @@ class TenantRepository:
             await session.refresh(user)
 
             logger.info(f"User {user.username} (email={user.email}) removed from tenant id={tenant_id}")
-            return user
+        return user
 
     async def get_all_users_info(self, tenant_id: int) -> list[User]:
         async with self._session_factory() as session:  # type: AsyncSession

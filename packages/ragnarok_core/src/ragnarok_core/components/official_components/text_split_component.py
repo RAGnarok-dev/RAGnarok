@@ -1,7 +1,17 @@
+import asyncio
 import functools
+import logging
 import re
+from enum import Enum
+from io import BytesIO
+from typing import Dict, List, Tuple
+
 import numpy as np
-from typing import Dict, Tuple, List
+import pdfplumber
+from langchain_text_splitters import (
+    CharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
+)
 from openai import OpenAI
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
@@ -9,8 +19,14 @@ from ragnarok_toolkit.component import (
     ComponentOutputTypeOption,
     RagnarokComponent,
 )
-from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
-import asyncio
+
+logger = logging.getLogger(__name__)
+
+
+class SplitType(Enum):
+    CHARACTER_SPLIT = "character_split"
+    RECURSIVE_SPLIT = "recursive_split"
+    SEMANTIC_SPLIT = "semantic_split"
 
 
 class TextSplitComponent(RagnarokComponent):
@@ -54,6 +70,7 @@ class TextSplitComponent(RagnarokComponent):
         """Main execution method for processing the text content and splitting text."""
         file_type = file_type.lower()
         text = cls.extract_text(file_type, file_byte)
+        logger.info(f"split_type:{split_type}")
         if split_type == "character_split":
             chunks = await asyncio.to_thread(cls.common_split, text)
         elif split_type == "recursive_split":
@@ -68,29 +85,25 @@ class TextSplitComponent(RagnarokComponent):
     @staticmethod
     def extract_text(file_type: str, file_byte: bytes) -> str:
         text = ""
-        if file_type == "txt":
+        # TODO: other file type, and set enum for file type
+        if file_type == "text/plain":
             text = file_byte.decode("utf-8")
-        elif file_type == "pdf":
-            text = "pdf"
-        elif file_type == "image":
-            text = "image"
+        elif file_type == "application/pdf":
+            with pdfplumber.open(BytesIO(file_byte)) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    text += page.extract_text() or ""
         return text
 
     @staticmethod
     def common_split(text: str) -> List[str]:
-        text_spliter = CharacterTextSplitter(
-            separator="\n",
-            chunk_size=512,
-            chunk_overlap=128
-        )
+        text_spliter = CharacterTextSplitter(separator="\n", chunk_size=512, chunk_overlap=128)
         return text_spliter.split_text(text)
 
     @staticmethod
     def recursive_split(text: str) -> List[str]:
         text_spliter = RecursiveCharacterTextSplitter(
-            chunk_size=512,
-            chunk_overlap=128,
-            separators=["\n\n", "\n", "。", "！", "？", ".", "!", "?"]
+            chunk_size=512, chunk_overlap=128, separators=["\n\n", "\n", "。", "！", "？", ".", "!", "?"]
         )
         return text_spliter.split_text(text)
 
@@ -111,25 +124,26 @@ class TextSplitComponent(RagnarokComponent):
 
     @staticmethod
     def split_sentences(text: str) -> List[Dict]:
-        single_sentences_list = re.split(r'(?<=[。！？；])', text)
-        sentences = [{'sentence': x, 'index': i} for i, x in enumerate(single_sentences_list)]
+        single_sentences_list = re.split(r"(?<=[。！？；])", text)
+        sentences = [{"sentence": x, "index": i} for i, x in enumerate(single_sentences_list)]
         return sentences
 
     @staticmethod
     def combine_sentences(sentences: List[Dict], buffer_size: int = 1) -> List[Dict]:
         combined_sentences = [
-            ' '.join(
-                sentences[j]['sentence'] for j in range(max(i - buffer_size, 0), min(i + buffer_size, len(sentences))))
+            " ".join(
+                sentences[j]["sentence"] for j in range(max(i - buffer_size, 0), min(i + buffer_size, len(sentences)))
+            )
             for i in range(len(sentences))
         ]
         for i, combined_sentence in enumerate(combined_sentences):
-            sentences[i]['combined_sentence'] = combined_sentence
+            sentences[i]["combined_sentence"] = combined_sentence
 
         return sentences
 
     @staticmethod
     async def embed_sentences(sentences: List[Dict]) -> List[Dict]:
-        combined_texts = [x['combined_sentence'] for x in sentences]
+        combined_texts = [x["combined_sentence"] for x in sentences]
 
         base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
         api_key = "sk-7ce272f166b84698b4a397b681065c7c"
@@ -140,13 +154,10 @@ class TextSplitComponent(RagnarokComponent):
         batch_size = 25
 
         for i in range(0, len(combined_texts), batch_size):
-            batch_texts = combined_texts[i:i + batch_size]
+            batch_texts = combined_texts[i : i + batch_size]
 
             func = functools.partial(
-                client.embeddings.create,
-                model="text-embedding-v1",
-                input=batch_texts,
-                encoding_format="float"
+                client.embeddings.create, model="text-embedding-v1", input=batch_texts, encoding_format="float"
             )
             response = await asyncio.to_thread(func)
 
@@ -154,7 +165,7 @@ class TextSplitComponent(RagnarokComponent):
             all_embeddings.extend(batch_embeddings)
 
         for i in range(len(sentences)):
-            sentences[i]['combined_sentence_embedding'] = all_embeddings[i]
+            sentences[i]["combined_sentence_embedding"] = all_embeddings[i]
 
         return sentences
 
@@ -169,23 +180,22 @@ class TextSplitComponent(RagnarokComponent):
         distances = []
         for i in range(len(sentences) - 1):
             sim = cls.cos_similarity(
-                sentences[i]['combined_sentence_embedding'],
-                sentences[i + 1]['combined_sentence_embedding']
+                sentences[i]["combined_sentence_embedding"], sentences[i + 1]["combined_sentence_embedding"]
             )
             distance = 1 - sim
-            sentences[i]['distance_to_next'] = distance
+            sentences[i]["distance_to_next"] = distance
             distances.append(distance)
         return sentences
 
     @staticmethod
     def chunk_sentences(sentences: List[Dict], threshold: float = 0.48) -> List[str]:
         chunks = []
-        current_chunk = [sentences[0]['sentence']]
+        current_chunk = [sentences[0]["sentence"]]
         for i in range(1, len(sentences)):
-            if sentences[i - 1].get('distance_to_next', 0) > threshold:
+            if sentences[i - 1].get("distance_to_next", 0) > threshold:
                 chunks.append("".join(current_chunk))
                 current_chunk = []
-            current_chunk.append(sentences[i]['sentence'])
+            current_chunk.append(sentences[i]["sentence"])
         if current_chunk:
             chunks.append("".join(current_chunk))
         return chunks

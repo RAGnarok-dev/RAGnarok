@@ -1,11 +1,20 @@
 from enum import Enum
 
-from ragnarok_toolkit.common import PermissionType, PrincipalType
-from sqlalchemy import JSON, Boolean, DateTime
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import ForeignKey, Integer, Sequence, String, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Sequence,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
 # from sqlalchemy import Sequnce
+
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""
@@ -68,22 +77,6 @@ class User(Base):
     )
 
 
-class EmbeddingModel(Base):
-    """
-    EmbeddingModel: a model that can be used to embed text.
-    Fields:
-      - id: PK
-      - name: name of the embedding model
-      - dimension: dimension of the embedding
-    """
-
-    __tablename__ = "embedding_models"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    dimension: Mapped[int] = mapped_column(Integer, nullable=False)
-
-
 class KnowledgeBase(Base):
     """
     KnowledgeBase: a resource owned by either a tenant or a user.
@@ -101,7 +94,8 @@ class KnowledgeBase(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
-    embedding_model_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding_model_name: Mapped[str] = mapped_column(String, nullable=False)
+    split_type: Mapped[str] = mapped_column(String, nullable=False)
     root_file_id: Mapped[str] = mapped_column(String, nullable=False)
 
     principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -169,10 +163,12 @@ class Pipeline(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    principal_id:   Mapped[int]  = mapped_column(Integer, nullable=False)
+    principal_type: Mapped[str]  = mapped_column(String,  nullable=False)
     content: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     avatar: Mapped[str | None] = mapped_column(String, nullable=True)
+    params: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class CreatorType(str, Enum):
@@ -196,7 +192,6 @@ class File(Base):
 
     __tablename__ = "files"
 
-
     id: Mapped[str] = mapped_column(String, Sequence("file_id_seq"), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -206,7 +201,8 @@ class File(Base):
     principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
     # principal_type: "tenant" or "user"
     principal_type: Mapped[str] = mapped_column(String, nullable=False)
-    # chunk_count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    chunk_size: Mapped[int] = mapped_column(Integer, nullable=False)
 
     parent_id: Mapped[str] = mapped_column(String, ForeignKey("files.id", ondelete="CASCADE"), nullable=True)
 

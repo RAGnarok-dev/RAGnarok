@@ -83,3 +83,46 @@ class TestComponent3(RagnarokComponent):
     @classmethod
     def execute(cls, component3_input_1: str) -> Dict[str, str]:
         return {"component3_output_1": "this is res of component 3"}
+
+
+# Define mock components for testing
+class MockComponentA(RagnarokComponent):
+    DESCRIPTION: str = "Mock Component A"
+    ENABLE_HINT_CHECK: bool = True
+
+    @classmethod
+    def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
+        return (
+            ComponentInputTypeOption(name="value", allowed_types={ComponentIOType.INT}, required=True),
+            ComponentInputTypeOption(name="multiplier", allowed_types={ComponentIOType.INT}, required=False),
+        )
+
+    @classmethod
+    def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
+        return (ComponentOutputTypeOption(name="result", type=ComponentIOType.INT),)
+
+    @classmethod
+    async def execute(cls, value: int, multiplier: Optional[int] = 1) -> Dict[str, Any]:
+        await asyncio.sleep(0.01)  # Simulate async operation
+        return {"result": value * multiplier}
+
+
+class MockComponentB(RagnarokComponent):
+    DESCRIPTION: str = "Mock Component B"
+    ENABLE_HINT_CHECK: bool = True
+
+    @classmethod
+    def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
+        return (
+            ComponentInputTypeOption(name="value", allowed_types={ComponentIOType.INT}, required=True),
+            ComponentInputTypeOption(name="multiplier", allowed_types={ComponentIOType.INT}, required=False),
+        )
+
+    @classmethod
+    def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
+        return (ComponentOutputTypeOption(name="result", type=ComponentIOType.INT),)
+
+    @classmethod
+    async def execute(cls, value: int, multiplier: Optional[int] = 1) -> Dict[str, Any]:
+        await asyncio.sleep(0.01)  # Simulate async operation
+        return {"result": value + multiplier}

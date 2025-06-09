@@ -7,7 +7,6 @@ from ragnarok_core.components.official_components.embedding_component import Emb
 
 @pytest.mark.asyncio
 async def test_pipeline_execution():
-    # print("1111111111111111111111111111")
     # # 定义连接
     connection1 = PipelineNode.NodeConnection(
         from_node_id="1",
