@@ -196,8 +196,6 @@ async def update_tenant_avatar(
 ) -> Response[TenantUpdateAvatarResponseModel]:
     header, encoded = data.avatar.split(',', 1)
     file_data = base64.b64decode(encoded)
-    print(file_data)
-
     filename = f"{current_tenant.id}-tenant.png"
     save_dir = "static/avatars"
 
