@@ -48,6 +48,8 @@ class PipelineSaveRequest(BaseModel):
     description: Optional[str] = None
     avatar: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
+    components: Optional[str] = None
+    path: Optional[str] = None
 
 class PipelineBriefResponse(BaseModel):
     id: int
@@ -55,7 +57,9 @@ class PipelineBriefResponse(BaseModel):
     description: Optional[str] = None
     avatar: Optional[str] = None
     content: str
-    params: Optional[Dict[str, Any]] = None         
+    params: Optional[Dict[str, Any]] = None   
+    components: Optional[str] = None
+    path: Optional[str] = None      
 
     @field_validator("params", mode="before")
     @classmethod
@@ -165,6 +169,8 @@ async def save_pipeline(
         description=request.description,
         avatar=request.avatar,
         params=request.params,
+        components=request.components,
+        path=request.path,   
     )
     if not ok:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")

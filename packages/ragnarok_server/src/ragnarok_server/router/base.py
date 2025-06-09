@@ -151,6 +151,8 @@ class PipelineDetailModel(BaseModel):
     description: str | None
     avatar: str | None
     params: Optional[Dict[str, Any]] = None
+    components: Optional[str] = None
+    path: Optional[str] = None
 
     @classmethod
     def from_pipeline(cls, pipeline: Pipeline) -> "PipelineDetailModel":
@@ -162,5 +164,7 @@ class PipelineDetailModel(BaseModel):
             content=pipeline.content,
             description=pipeline.description,
             avatar=pipeline.avatar,
+            components=pipeline.components,
+            path=pipeline.path,
             params=json.loads(pipeline.params) if pipeline.params else None, 
         )

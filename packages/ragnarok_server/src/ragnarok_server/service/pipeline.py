@@ -69,9 +69,11 @@ class PipelineService:
         description: Optional[str] = None,
         avatar: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
+        components: Optional[str] = None,
+        path: Optional[str] = None,
     ) -> bool:
         return await self.pipeline_repo.update_pipeline(
-            pipeline_id, name=name, content=content, description=description, avatar=avatar,params=json.dumps(params) if params is not None else None,
+            pipeline_id, name=name, content=content, description=description, avatar=avatar,params=json.dumps(params) if params is not None else None,components=components, path=path
         )
     
     async def get_pipeline_list_by_creator(

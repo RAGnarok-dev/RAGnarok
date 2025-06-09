@@ -155,7 +155,8 @@ class Pipeline(Base):
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     avatar: Mapped[str | None] = mapped_column(String, nullable=True)
     params: Mapped[str | None] = mapped_column(String, nullable=True)
-
+    components: Mapped[str | None] = mapped_column(String, nullable=True)
+    path:       Mapped[str | None] = mapped_column(String, nullable=True)
 
 class CreatorType(str, Enum):
     TENANT = "tenant"
