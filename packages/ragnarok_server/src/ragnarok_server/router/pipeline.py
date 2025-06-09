@@ -233,12 +233,9 @@ async def reset_pipeline(
 async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingResponse:
     async def sse_wrapper(ori_gen: AsyncGenerator[PipelineExecutionInfo, None]) -> AsyncGenerator[str, None]:
         async for pipeline_execution_info in ori_gen:
-            # 如果是 output_info 类型，返回并立即结束 SSE 流
             if pipeline_execution_info.type == "output_info":
-                # 遍历 data 字段，查找以 "_res" 结尾的键
                 for key, value in pipeline_execution_info.data.items():
                     if key.endswith('_res'):
-                        # 构建更新后的信息结构
                         content = json.dumps(value)
                         updated_info = {
                             "node_id": pipeline_execution_info.node_id,
@@ -248,12 +245,10 @@ async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingRe
                             },
                             "timestamp": pipeline_execution_info.timestamp.isoformat()  # 确保时间戳可序列化
                         }
-                        # 返回包含 content 的 SSE 数据
                         yield "data: " + json.dumps(updated_info) + "\n\n"
-                        return  # 结束 SSE 流
+                        return  
 
             else:
-                # 非 output_info 类型，继续返回节点执行的状态信息
                 content = f"node {pipeline_execution_info.node_id} running, output: {pipeline_execution_info.data}"
 
                 updated_info = {
@@ -265,15 +260,15 @@ async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingRe
                     "timestamp": pipeline_execution_info.timestamp.isoformat()  # 确保时间戳可序列化
                 }
 
-                # 使用更新后的数据结构返回 SSE 内容
+
                 yield "data: " + json.dumps(updated_info) + "\n\n"
 
-    # 1. 获取 pipeline 模型
+
     pipeline = await pipeline_service.get_pipeline_by_id(request.pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=400, content=f"pipeline with id {request.pipeline_id} not found")
 
-    # 2. 执行 pipeline
+
     return StreamingResponse(
         sse_wrapper(await pipeline_service.execute_pipeline(pipeline.content, request.params)),
         media_type="text/event-stream",
