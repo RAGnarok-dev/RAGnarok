@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import json
 from typing import Any, Dict, Optional, Tuple
@@ -81,6 +82,12 @@ class LLMIntentRecognitionComponent(RagnarokComponent):
         temperature: float,
         top_p: float,
     ) -> Dict[str, Any]:
+        user_question = str(user_question)
+        intent_dict = ast.literal_eval(intent_dict)
+        max_retries = int(max_retries)
+        temperature = float(temperature)
+        top_p = float(top_p)
+
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
         # Format the intent list for the prompt

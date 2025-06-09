@@ -1,3 +1,4 @@
+import ast
 import json
 from typing import Dict, List, Optional, Tuple
 
@@ -85,6 +86,10 @@ class RetrievalComponent(RagnarokComponent):
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
     ) -> Dict[str, List[str]]:
+        if isinstance(db_id_list, str):
+            db_id_list = ast.literal_eval(db_id_list)
+        score_threshold = float(score_threshold)
+        top_n = float(top_n)
         try:
             embedding_model = EmbeddingModelEnum.from_name(embedding_model_name)
         except ValueError:

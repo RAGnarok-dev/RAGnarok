@@ -28,6 +28,7 @@ class CrawlerComponent(RagnarokComponent):
 
     @classmethod
     async def execute(cls, url: str) -> Dict[str, Any]:
+        url = str(url)
         async with AsyncWebCrawler(verbose=True) as crawler:
             result = await crawler.arun(url=url, bypass_cache=True)
             return {"content": result.markdown}

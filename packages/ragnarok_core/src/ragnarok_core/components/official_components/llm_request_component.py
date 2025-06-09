@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import json
 from typing import Any, Dict, List, Optional, Tuple
@@ -130,6 +131,12 @@ class LLMRequestComponent(RagnarokComponent):
         """
         execute the async component function
         """
+        llm_session_id = int(llm_session_id)
+        if isinstance(content_list, str):
+            content_list = ast.literal_eval(content_list)
+        max_retries = int(max_retries)
+        temperature = float(temperature)
+        top_p = float(top_p)
         if llm_session_id is None:
             llm_session = cls.LLMSession(
                 title="untitled session",

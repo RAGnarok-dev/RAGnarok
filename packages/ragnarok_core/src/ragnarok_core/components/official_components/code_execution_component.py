@@ -28,6 +28,7 @@ class CodeExecutionComponent(RagnarokComponent):
 
     @classmethod
     async def execute(cls, code: str) -> Dict[str, Any]:
+        code = str(code)
         try:
             exec(code)
             return {}

@@ -42,6 +42,7 @@ class Chunks2Object(RagnarokComponent):
 
     @classmethod
     def execute(cls, doc_id: str, text_chunks: List[str]) -> Dict[str, Any]:
+        doc_id = str(doc_id)
         chunk_ids = [f"{doc_id}_{i}" for i in range(len(text_chunks))]
         content_bytes_list = [chunk.encode("utf-8") for chunk in text_chunks]
         return {"chunk_ids": chunk_ids, "content_bytes_list": content_bytes_list}

@@ -72,6 +72,7 @@ class KeywordExtractComponent(RagnarokComponent):
     async def execute(
         cls, api_key: str, base_url: str, model_name: str, query: str, size: Optional[int] = 5
     ) -> Dict[str, Any]:
+        size = int(size)
         client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         messages = [
             {
