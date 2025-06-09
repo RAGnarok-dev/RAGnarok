@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Any, Dict, Tuple
 
 from ragnarok_core.components import component_manager
@@ -49,6 +50,10 @@ class SwitchComponent(RagnarokComponent):
         component_mapping: dict,  # Mapping from enum values to component names
         input_params: dict,  # Input parameters
     ) -> Dict[str, Any]:
+        if isinstance(input_params, str):
+            input_params = json.loads(input_params)
+        if isinstance(component_mapping, dict):
+            component_mapping = component_mapping.copy()
         """
         Execute the component function
 

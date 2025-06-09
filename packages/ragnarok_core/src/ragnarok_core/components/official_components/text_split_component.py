@@ -1,18 +1,25 @@
 import asyncio
+import csv
 import functools
+import json
 import logging
 import re
 from enum import Enum
 from io import BytesIO
 from typing import Dict, List, Tuple
 
+import docx2txt
 import numpy as np
 import pdfplumber
+import xlrd
+from bs4 import BeautifulSoup
 from langchain_text_splitters import (
     CharacterTextSplitter,
     RecursiveCharacterTextSplitter,
 )
 from openai import OpenAI
+from openpyxl import load_workbook
+from pptx import Presentation
 from ragnarok_toolkit.component import (
     ComponentInputTypeOption,
     ComponentIOType,
@@ -86,13 +93,56 @@ class TextSplitComponent(RagnarokComponent):
     def extract_text(file_type: str, file_byte: bytes) -> str:
         text = ""
         # TODO: other file type, and set enum for file type
-        if file_type == "text/plain":
+        if file_type == "text/plain":  # txt
             text = file_byte.decode("utf-8")
-        elif file_type == "application/pdf":
+        elif file_type == "application/pdf":  # pdf
             with pdfplumber.open(BytesIO(file_byte)) as pdf:
                 text = ""
                 for page in pdf.pages:
                     text += page.extract_text() or ""
+        elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":  # docx
+            text = docx2txt.process(BytesIO(file_byte))
+        elif file_type == "application/json":  # json
+            text = json.dumps(json.loads(file_byte), ensure_ascii=False)
+        elif file_type == "application/vnd.ms-excel":  # xls
+            workbook = xlrd.open_workbook(file_contents=file_byte)
+            sheet = workbook.sheet_by_index(0)
+            text = ""
+            for row in range(sheet.nrows):
+                for col in range(sheet.ncols):
+                    cell_value = sheet.cell_value(row, col)
+                    if cell_value:
+                        text += str(cell_value) + "\n"
+        elif file_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":  # xlsx
+            workbook = load_workbook(BytesIO(file_byte))
+            sheet = workbook.active
+            text = ""
+            for row in sheet.rows:
+                for cell in row:
+                    if cell.value:
+                        text += str(cell.value) + "\n"
+        elif file_type == "application/vnd.ms-powerpoint":  # ppt
+            prs = Presentation(BytesIO(file_byte))
+            text = ""
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        text += shape.text + "\n"
+        elif file_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":  # pptx
+            prs = Presentation(BytesIO(file_byte))
+            text = ""
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if hasattr(shape, "text"):
+                        text += shape.text + "\n"
+        elif file_type == "text/html":  # html
+            text = BeautifulSoup(file_byte, "html.parser").get_text()
+        elif file_type == "text/htm":  # htm
+            text = BeautifulSoup(file_byte, "html.parser").get_text()
+        elif file_type == "text/xml":  # xml
+            text = BeautifulSoup(file_byte, "xml.parser").get_text()
+        elif file_type == "text/csv":  # csv
+            text = csv.reader(file_byte)
         return text
 
     @staticmethod

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List
 
@@ -23,6 +24,17 @@ class StoreService:
         self.qdrant_client = QdrantClient
         self.text_split_component = TextSplitComponent
         self.embedding_model = EmbeddingModel
+
+    async def _retry_operation(self, operation, max_retries=3, delay=1):
+        """重试机制"""
+        for attempt in range(max_retries):
+            try:
+                return await operation()
+            except Exception as e:
+                logger.error(f"Operation failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                if attempt == max_retries - 1:
+                    raise e
+                await asyncio.sleep(delay * (attempt + 1))
 
     # deal with file
     async def store_file(
@@ -129,7 +141,12 @@ class StoreService:
 
     # VDB
     async def _insert_vectors_to_vdb(self, embedding_model_name: str, points: List[QdrantPoint]):
-        await self.qdrant_client.insert_vectors(embedding_model_name, points)
+        """向向量数据库插入向量，带重试机制"""
+
+        async def _insert():
+            await self.qdrant_client.insert_vectors(embedding_model_name, points)
+
+        await self._retry_operation(_insert)
 
     async def _vector2Point(self, vector: List[float], kb_id: int, file_id: str, chunk_id: int, text: str):
         pyload = {"db_id": str(kb_id), "doc_id": file_id, "chunk_id": str(chunk_id), "text": text}

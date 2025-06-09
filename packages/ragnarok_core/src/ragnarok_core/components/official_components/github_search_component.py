@@ -43,6 +43,8 @@ class GithubSearchComponent(RagnarokComponent):
 
     @classmethod
     async def execute(cls, keyword: str, top_n: int) -> Dict[str, Any]:
+        keyword = str(keyword)
+        top_n = str(top_n)
         try:
             url = (
                 "https://api.github.com/search/repositories?q="

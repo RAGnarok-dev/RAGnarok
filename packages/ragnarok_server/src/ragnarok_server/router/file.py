@@ -55,18 +55,27 @@ async def upload_file(
         parent_id=parent_id,
         knowledge_base_id=knowledge_base_id,
     )
-    kb = await kb_service.get_knowledge_base_by_id(knowledge_base_id)
+    try:
+        kb = await kb_service.get_knowledge_base_by_id(knowledge_base_id)
+    except Exception:
+        await file_service.remove_file(uploaded_file.id, uploaded_file.principal_type, uploaded_file.principal_id)
+        raise HTTPException(status_code=500, content="Failed to get knowledge base")
+
     content: bytes = await file.read()
-    chunk_size = await store_service.store_file(
-        knowledge_base_id=knowledge_base_id,
-        principal_type=uploaded_file.principal_type,
-        principal_id=uploaded_file.principal_id,
-        file_id=uploaded_file.id,
-        file_type=uploaded_file.type,
-        content=content,
-        split_type=kb.split_type,
-        embedding_model_name=kb.embedding_model_name,
-    )
+    try:
+        chunk_size = await store_service.store_file(
+            knowledge_base_id=knowledge_base_id,
+            principal_type=uploaded_file.principal_type,
+            principal_id=uploaded_file.principal_id,
+            file_id=uploaded_file.id,
+            file_type=uploaded_file.type,
+            content=content,
+            split_type=kb.split_type,
+            embedding_model_name=kb.embedding_model_name,
+        )
+    except Exception:
+        await file_service.remove_file(uploaded_file.id, uploaded_file.principal_type, uploaded_file.principal_id)
+        raise HTTPException(status_code=500, content="Failed to store file")
     await file_service.update_file_chunk_size(file_id=uploaded_file.id, chunk_size=chunk_size)
     uploaded_file.chunk_size = chunk_size
     return ResponseCode.OK.to_response(data=FileResponse.model_validate(uploaded_file))
