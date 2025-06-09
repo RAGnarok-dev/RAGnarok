@@ -73,7 +73,8 @@ class KnowledgeBaseService:
                     "root_file_id": kb.root_file_id,
                     "permission": permission,
                     "principal_id": kb.principal_id,
-                    "principal_type": kb.principal_type
+                    "principal_type": kb.principal_type,
+                    "avatar": kb.avatar_url
                 })
 
         return kbs

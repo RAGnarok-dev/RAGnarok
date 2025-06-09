@@ -83,6 +83,7 @@ async def login_user(
             is_active=user.is_active,
             access_token=result["access_token"],
             token_type=result["token_type"],
+            tenant_id=user.tenant_id,
         )
     )
 
