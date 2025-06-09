@@ -146,6 +146,9 @@ class UserService:
     async def get_user_by_id(self, user_id: int) -> User:
         return await self.repo.get_user_by_id(user_id)
 
+    async def get_tenant_id_by_user_id(self, user_id: int) -> int:
+        return await self.repo.get_tenant_id_by_user_id(user_id)
+
 
 # Initialize the service instance
 user_service = UserService()
