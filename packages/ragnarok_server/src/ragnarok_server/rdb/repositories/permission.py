@@ -50,12 +50,31 @@ class PermissionRepository:
     @classmethod
     async def change_permission(cls, knowledge_base_id: int, principal_id: int, principal_type: str, permission_type: str) -> bool:
         async with get_async_session() as session:
-            stmt = update(Permission).where(
-                Permission.knowledge_base_id == knowledge_base_id,
-                Permission.principal_id == principal_id,
-                Permission.principal_type == principal_type).values(permission_type=permission_type)
-            result = await session.execute(stmt)
-            return result.rowcount > 0
+            stmt_check = select(Permission).where(Permission.knowledge_base_id == knowledge_base_id,
+                                                  Permission.principal_id == principal_id,
+                                                  Permission.principal_type == principal_type)
+            result = await session.execute(stmt_check)
+            existing_permission = result.first()
+            if existing_permission:
+                stmt = update(Permission).where(
+                    Permission.knowledge_base_id == knowledge_base_id,
+                    Permission.principal_id == principal_id,
+                    Permission.principal_type == principal_type).values(permission_type=permission_type)
+                result = await session.execute(stmt)
+                return result.rowcount > 0
+            else:
+                permission = Permission(
+                    principal_id=principal_id,
+                    principal_type=principal_type,
+                    knowledge_base_id=knowledge_base_id,
+                    permission_type=permission_type,
+                )
+                session.add(permission)
+                await session.commit()
+                await session.refresh(permission)
+                return True
+
+
 
     @classmethod
     async def get_all_knowledge_bases_by_id(cls, principal_id: int, principal_type: str) -> Dict[int, str]:
@@ -67,7 +86,8 @@ class PermissionRepository:
             rows = result.all()
             return {kb_id: perm for kb_id, perm in rows}
 
-    async def get_permission_list(self, knowledge_base_id: int) -> list[Permission]:
+    @classmethod
+    async def get_permission_list(cls, knowledge_base_id: int) -> list[Permission]:
         async with get_async_session() as session:
             stmt = select(Permission).where(Permission.knowledge_base_id == knowledge_base_id)
             result = await session.execute(stmt)

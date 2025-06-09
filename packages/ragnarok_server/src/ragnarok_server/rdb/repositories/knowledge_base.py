@@ -97,3 +97,12 @@ class KnowledgeBaseRepository:
                 stmt = stmt.values(split_type=split_type)
             result = await session.execute(stmt)
         return result.rowcount > 0
+
+    @classmethod
+    async def update_avatar(cls, knowledge_base_id: int, new_avatar: str) -> KnowledgeBase:
+        async with get_async_session() as session:
+            stmt = update(KnowledgeBase).where(KnowledgeBase.id == knowledge_base_id).\
+                values(avatar_url=new_avatar).returning(KnowledgeBase)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

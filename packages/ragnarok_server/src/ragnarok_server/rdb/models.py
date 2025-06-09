@@ -99,6 +99,13 @@ class KnowledgeBase(Base):
 
     principal_id: Mapped[int] = mapped_column(Integer, nullable=False)
     principal_type: Mapped[str] = mapped_column(String, nullable=False)
+    avatar_url: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",  # 默认头像URL
+        server_default="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+        # 数据库层面默认值
+    )
 
 
 class LLMSession(Base):
