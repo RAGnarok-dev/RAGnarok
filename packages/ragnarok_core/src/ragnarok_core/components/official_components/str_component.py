@@ -8,15 +8,15 @@ from ragnarok_toolkit.component import (
 )
 
 
-class CodeExecutionComponent(RagnarokComponent):
-    DESCRIPTION: str = "Execute Python code"
-    ENABLE_HINT_CHECK: bool = True
+class StrComponent(RagnarokComponent):
+    DESCRIPTION = "pass str"
+    ENABLE_HINT_CHECK = True
 
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (
             ComponentInputTypeOption(
-                name="code",
+                name="input",
                 allowed_types={ComponentIOType.STRING},
                 required=True,
             ),
@@ -24,13 +24,13 @@ class CodeExecutionComponent(RagnarokComponent):
 
     @classmethod
     def output_options(cls) -> Tuple[ComponentOutputTypeOption, ...]:
-        return ()
+        return (
+            ComponentOutputTypeOption(
+                name="output",
+                type=ComponentIOType.STRING,
+            ),
+        )
 
     @classmethod
-    async def execute(cls, code: str) -> Dict[str, Any]:
-        code = str(code)
-        try:
-            exec(code)
-            return {}
-        except Exception as e:
-            return {"error": str(e)}
+    def execute(cls, input: str) -> Dict[str, Any]:
+        return {"output": input}

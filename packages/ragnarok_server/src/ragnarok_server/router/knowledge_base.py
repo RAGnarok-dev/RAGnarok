@@ -36,6 +36,7 @@ class KnowledgeBaseResponse(BaseModel):
     root_file_id: str
     principal_id: int
     principal_type: str
+    avatar: Optional[str]
 
     class Config:
         from_attributes = True
@@ -51,6 +52,7 @@ class GetAllKnowledgeBaseResponse(BaseModel):
     principal_id: int
     principal_type: str
     permission: str
+    avatar: Optional[str]
 
 
 class KnowledgeBaseCreateRequest(BaseModel):
@@ -238,6 +240,10 @@ async def list_knowledge_base(
         data=ListResponseData(count=len(kbs), items=[GetAllKnowledgeBaseResponse.model_validate(kb) for kb in kbs])
     )
 
+class KnowledgeBaseInfoResponse(BaseModel):
+    title: str
+    description: str
+    avatar: str
 
 @router.get("/get")
 @require_permission("read")
@@ -245,7 +251,18 @@ async def get_knowledge_base(
     knowledge_base_id: int, token: TokenData = Depends(decode_access_token)
 ) -> Response[KnowledgeBaseResponse]:
     kb = await kb_service.get_knowledge_base_by_id(knowledge_base_id)
-    return ResponseCode.OK.to_response(data=KnowledgeBaseResponse.model_validate(kb))
+    return ResponseCode.OK.to_response(data=KnowledgeBaseResponse(
+            id=kb.id,
+            title=kb.title,
+            description=kb.description,
+            embedding_model_name=kb.embedding_model_name,
+            split_type=kb.split_type,
+            root_file_id=kb.root_file_id,
+            principal_id=kb.principal_id,
+            principal_type=kb.principal_type,
+            avatar=kb.avatar_url,
+        )
+    )
 
 
 @router.get("/get_root_file")

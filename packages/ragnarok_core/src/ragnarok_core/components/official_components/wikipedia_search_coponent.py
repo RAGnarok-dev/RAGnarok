@@ -41,6 +41,7 @@ class WikipediaSearchComponent(RagnarokComponent):
 
     @classmethod
     def execute(cls, keyword: str, top_n: int) -> Dict[str, Any]:
+        top_n = int(top_n)
         try:
             wiki_res = []
             urls = []

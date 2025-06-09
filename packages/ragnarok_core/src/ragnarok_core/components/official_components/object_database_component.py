@@ -1,3 +1,4 @@
+import ast
 from typing import Any, Dict, List, Tuple
 
 from ragnarok_toolkit.component import (
@@ -76,6 +77,8 @@ class GetFromODB(RagnarokComponent):
 
     @classmethod
     async def execute(cls, bucket_name: str, chunk_ids: List[str]) -> Dict[str, Any]:
+        if isinstance(chunk_ids, str):
+            chunk_ids = ast.literal_eval(chunk_ids)
         content_list = []
         for chunk_id in chunk_ids:
             content = await minio_client.download_object(bucket_name, chunk_id)

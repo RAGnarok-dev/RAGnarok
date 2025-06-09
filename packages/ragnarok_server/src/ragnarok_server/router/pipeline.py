@@ -32,6 +32,10 @@ class PipelineExecuteRequest(BaseModel):
     pipeline_id: int
     params: Dict[str, Any]
 
+class PipelineCompletionRequest(BaseModel):
+    pipeline_id: int
+    message_id: int
+    params: Dict[str, Any] = {}
 
 class PipelineTestRequest(BaseModel):
     pipeline_content: str
@@ -222,3 +226,50 @@ async def reset_pipeline(
     if not ok:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
     return ResponseCode.OK.to_response()
+
+
+
+@router.post("/completion")
+async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingResponse:
+    async def sse_wrapper(ori_gen: AsyncGenerator[PipelineExecutionInfo, None]) -> AsyncGenerator[str, None]:
+        async for pipeline_execution_info in ori_gen:
+            if pipeline_execution_info.type == "output_info":
+                for key, value in pipeline_execution_info.data.items():
+                    if key.endswith('_res'):
+                        content = json.dumps(value)
+                        updated_info = {
+                            "node_id": pipeline_execution_info.node_id,
+                            "type": pipeline_execution_info.type,
+                            "data": {
+                                "content": content
+                            },
+                            "timestamp": pipeline_execution_info.timestamp.isoformat()  # 确保时间戳可序列化
+                        }
+                        yield "data: " + json.dumps(updated_info) + "\n\n"
+                        return  
+
+            else:
+                content = f"node {pipeline_execution_info.node_id} running, output: {pipeline_execution_info.data}"
+
+                updated_info = {
+                    "node_id": pipeline_execution_info.node_id,
+                    "type": pipeline_execution_info.type,
+                    "data": {
+                        "content": content
+                    },
+                    "timestamp": pipeline_execution_info.timestamp.isoformat()  # 确保时间戳可序列化
+                }
+
+
+                yield "data: " + json.dumps(updated_info) + "\n\n"
+
+
+    pipeline = await pipeline_service.get_pipeline_by_id(request.pipeline_id)
+    if pipeline is None:
+        raise HTTPException(status_code=400, content=f"pipeline with id {request.pipeline_id} not found")
+
+
+    return StreamingResponse(
+        sse_wrapper(await pipeline_service.execute_pipeline(pipeline.content, request.params)),
+        media_type="text/event-stream",
+    )

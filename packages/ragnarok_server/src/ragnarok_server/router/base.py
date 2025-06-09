@@ -63,6 +63,8 @@ class UserLoginResponseModel(BaseModel):
     is_active: bool
     access_token: str
     token_type: str
+    tenant_id: Optional[int] = None
+
 
 
 class UserInfoResponseModel(BaseModel):
