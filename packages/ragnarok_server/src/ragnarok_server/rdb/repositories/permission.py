@@ -23,7 +23,7 @@ class PermissionRepository:
                 session.add(permission)
             else:
                 session.merge(permission)
-            return permission
+        return permission
 
     @classmethod
     async def delete_permission(cls, principal_id: int, principal_type: str, knowledge_base_id: int) -> bool:
@@ -34,7 +34,7 @@ class PermissionRepository:
                 Permission.knowledge_base_id == knowledge_base_id,
             )
             result = await session.execute(stmt)
-            return result.rowcount > 0
+        return result.rowcount > 0
 
     @classmethod
     async def get_permission(cls, principal_id: int, principal_type: str, knowledge_base_id: int) -> Permission:
@@ -66,6 +66,4 @@ class PermissionRepository:
             result = await session.execute(stmt)
             rows = result.all()
             return {kb_id: perm for kb_id, perm in rows}
-
-
 

@@ -9,9 +9,10 @@ class PayloadDict(TypedDict):
     db_id: str
     doc_id: str
     chunk_id: str
+    text: str
 
 
-class SearchPayloadDict(TypedDict, total=False):
+class SearchPayloadDict(TypedDict, total=False):  # all fields are optional
     db_id: str
     doc_id: str
 
@@ -49,7 +50,7 @@ class QdrantClient:
     Vector database using qdrant
     """
 
-    qdrant_client = AsyncQdrantClient(url="http://localhost:6333")
+    qdrant_client = AsyncQdrantClient(url="http://81.70.198.42:6333")
 
     @classmethod
     async def init_collection(cls, name: str, dim: int, distance_map: str = "COSINE") -> bool:
@@ -143,10 +144,11 @@ class QdrantClient:
             )
 
     @classmethod
-    async def search_vectors(
+    async def search(
         cls,
-        name: str,
+        collection_name: str,
         query_vector: List[float],
+        score_threshold: float = 0,
         top_k: int = 10,
         payload_filters: Optional[List[SearchPayloadDict]] = None,
     ):
@@ -161,9 +163,10 @@ class QdrantClient:
             List[str]: List of chunk_id that results belong to
         """
         search_result = await cls.qdrant_client.query_points(
-            collection_name=name,
+            collection_name=collection_name,
             query=query_vector,
             limit=top_k,
+            score_threshold=score_threshold,
             query_filter=models.Filter(
                 should=[
                     models.Filter(
@@ -177,10 +180,10 @@ class QdrantClient:
             ),
         )
 
-        chunk_ids = []
+        texts = []
         for point in search_result.points:
-            chunk_ids.append(point.payload["chunk_id"])
-        return chunk_ids
+            texts.append(point.payload["text"])
+        return texts
 
     @classmethod
     async def delete_vectors(cls, name: str, ids: List[int]) -> None:

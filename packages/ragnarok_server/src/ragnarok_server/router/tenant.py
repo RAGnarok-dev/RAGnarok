@@ -1,6 +1,8 @@
-from fastapi import Body, Depends
+from fastapi import Body
+from fastapi import Depends
+import os
+import base64
 from fastapi import Response as FastAPIResponse
-from ragnarok_server.auth import get_current_tenant
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.exceptions import InvalidArgsError, NoResultFoundError
 from ragnarok_server.rdb.models import Tenant, User
@@ -19,12 +21,15 @@ from ragnarok_server.router.base import (
     UserInfoResponseModel,
     TenantUpdateAvatarRequestModel,
     TenantUpdateAvatarResponseModel,
-    TenantChangeNameRequestModel,
-    TenantChangeNameResponseModel,
+    TenantChangePasswordRequestModel,
+    TenantChangePasswordResponseModel
 )
+from ragnarok_server.auth import get_current_tenant
+from passlib.context import CryptContext
 from ragnarok_server.service.store import store_service
 from ragnarok_server.service.tenant import tenant_service
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
 
 
@@ -152,7 +157,12 @@ async def get_tenant_info(
     result: dict = await service.get_tenant_info(current_tenant)
 
     return ResponseCode.OK.to_response(
-        data=TenantInfoResponseModel(tenantname=result["tenantname"], id=result["id"], avatar="avatar")
+        data=TenantInfoResponseModel(
+            tenantname=result["tenantname"],
+            id=result["id"],
+            avatar=result["avatar"],
+            email=result["email"]
+        )
     )
 
 
@@ -166,7 +176,8 @@ async def get_all_users_info(
 ) -> Response[TenantGetUsersResponseModel]:
     users: list[User] = await service.get_all_users_info(current_tenant)
 
-    user_data = [UserInfoResponseModel(id=user.id, username=user.username, email=user.email, avatar="avatar") for user in users]
+    user_data = [UserInfoResponseModel(id=user.id, username=user.username,
+                                       email=user.email, avatar="avatar") for user in users]
 
     return ResponseCode.OK.to_response(
         data=TenantGetUsersResponseModel(tenant_id=current_tenant.id, tenantname=current_tenant.name, users=user_data)
@@ -183,7 +194,20 @@ async def update_tenant_avatar(
     current_tenant: Tenant = Depends(get_current_tenant),
     service=Depends(lambda: tenant_service)
 ) -> Response[TenantUpdateAvatarResponseModel]:
-    new_tenant: Tenant = await service.update_tenant_avatar(current_tenant, data.new_avatar_url)
+    header, encoded = data.avatar.split(',', 1)
+    file_data = base64.b64decode(encoded)
+    print(file_data)
+
+    filename = f"{current_tenant.id}-tenant.png"
+    save_dir = "static/avatars"
+
+    os.makedirs(save_dir, exist_ok=True)
+    filepath = os.path.join(save_dir, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(file_data)
+
+    new_tenant: Tenant = await service.update_tenant_avatar(current_tenant, data.avatar, data.tenantname)
     return ResponseCode.OK.to_response(
         data=TenantUpdateAvatarResponseModel(
             tenantname=new_tenant.name,
@@ -192,22 +216,25 @@ async def update_tenant_avatar(
         )
     )
 
+
 @router.post(
-    '/change_name',
-    summary="Change tennat name",
-    response_model=Response[TenantChangeNameResponseModel],
+    "/change_password",
+    summary="Tenant change the password",
+    response_model=Response[TenantChangePasswordResponseModel]
 )
-async def change_name(
-        data: TenantChangeNameRequestModel = Body(...),
+async def change_password(
+        data: TenantChangePasswordRequestModel = Body(...),
         current_tenant: Tenant = Depends(get_current_tenant),
         service=Depends(lambda: tenant_service)
-) -> Response[TenantChangeNameResponseModel]:
+) -> Response[TenantChangePasswordResponseModel]:
+    new_hashed_password = pwd_context.hash(data.new_password)
 
-    tenant: Tenant = await service.change_name(current_tenant, data.new_name)
+    new_tenant: Tenant = await service.change_password(current_tenant, data.password, new_hashed_password)
 
     return ResponseCode.OK.to_response(
-        data=TenantChangeNameResponseModel(
-            tenantname=tenant.name,
-            id=tenant.id
+        data=TenantChangePasswordResponseModel(
+            tenantname=new_tenant.name,
+            tenant_id=new_tenant.id,
+            password_hash=new_tenant.password_hash
         )
     )

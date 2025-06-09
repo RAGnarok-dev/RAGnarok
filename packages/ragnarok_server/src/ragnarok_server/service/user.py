@@ -82,9 +82,16 @@ class UserService:
         return {
             "username": user.username,
             "id": user.id,
-            "email": user.email,
-            "avatar": user.avatar_url
+            "avatar": user.avatar_url,
+            "email": user.email
+
         }
+
+    async def update_user_avatar(self, user: User, new_avatar_url: str, new_username: str) -> User:
+        if not user:
+            raise NoResultFoundError("User does not exist")
+
+        return await self.repo.update_user_avatar(user.id, new_avatar_url, new_username)
 
     async def join_tenant(self, tenant_id: int, user: User,) -> dict:
         if not user:
@@ -110,12 +117,6 @@ class UserService:
             "tenant_id": tenant.id
         }
 
-    async def update_user_avatar(self, user: User, new_avatar_url: str) -> User:
-        if not user:
-            raise NoResultFoundError("User does not exist")
-
-        return await self.repo.update_user_avatar(user.id, new_avatar_url)
-
     async def get_all_users_info(self, user: User) -> dict:
         if not user:
             raise NoResultFoundError("User does not exist")
@@ -133,11 +134,14 @@ class UserService:
             "tenant": tenant
         }
 
-    async def change_name(self, user: User, new_name: str) -> User:
+    async def change_password(self, user: User, password: str, new_password: str) -> User:
         if not user:
             raise NoResultFoundError("User does not exist")
 
-        return await self.repo.change_name(user.id, new_name)
+        # if password != user.password_hash:
+        #     raise InvalidArgsError("The old password is incorrect")
+
+        return await self.repo.change_password(user.id, new_password)
 
 
 # Initialize the service instance

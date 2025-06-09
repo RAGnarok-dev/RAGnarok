@@ -41,6 +41,16 @@ ALGORITHM = os.environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 # ─── ODB settings ───────────────────────────────────────────────────────────
-ODB_ENDPOINT = os.environ.get("ODB_ENDPOINT", "http://localhost:9000")
-ODB_ACCESS_KEY = os.environ.get("ODB_ACCESS_KEY", "fTdBpg4eFpmMWdojeCHO")
-ODB_SECRET_KEY = os.environ.get("ODB_SECRET_KEY", "LgkALYBJiQqiPTuQCfs017k7e8QEjrSPCdZLUki1")
+# ODB_ENDPOINT = os.environ.get("ODB_ENDPOINT", "http://localhost:9000")
+# ODB_ACCESS_KEY = os.environ.get("ODB_ACCESS_KEY", "fTdBpg4eFpmMWdojeCHO")
+# ODB_SECRET_KEY = os.environ.get("ODB_SECRET_KEY", "LgkALYBJiQqiPTuQCfs017k7e8QEjrSPCdZLUki1")
+
+ODB_ENDPOINT = os.environ.get("ODB_ENDPOINT", "http://81.70.198.42:9000")
+ODB_ACCESS_KEY = os.environ.get("ODB_ACCESS_KEY", "minioadmin")
+ODB_SECRET_KEY = os.environ.get("ODB_SECRET_KEY", "minioadmin")
+
+# ——— HF API KEY ─────────────────────────────────────────────────────────────
+HF_API_KEY = os.environ.get("HF_API_KEY", "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")
+
+# ———— SILICONFLOW API KEY ───────────────────────────────────────────────────
+SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "sf_1234567890")

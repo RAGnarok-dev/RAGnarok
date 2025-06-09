@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from pydantic import BaseModel,EmailStr
 from ragnarok_server.rdb.models import Pipeline
+import json
 
 class CustomAPIRouter(APIRouter):
     """
@@ -69,6 +70,7 @@ class UserInfoResponseModel(BaseModel):
     id: int
     email: EmailStr
     avatar: str
+    email: EmailStr
 
 
 class UserJoinTenantRequestModel(BaseModel):
@@ -138,6 +140,18 @@ class TenantInfoResponseModel(BaseModel):
     tenantname: str
     id: int
     avatar: str
+    email: EmailStr
+
+
+class UserChangePasswordRequestModel(BaseModel):
+    password: str
+    new_password: str
+
+
+class UserChangePasswordResponseModel(BaseModel):
+    username: str
+    id: int
+    password_hash: str
 
 
 class TenantGetUsersResponseModel(BaseModel):
@@ -169,18 +183,10 @@ class TenantChangeNameResponseModel(BaseModel):
     tenantname: str
     tenant_id: int
 
-class TenantUpdateAvatarRequestModel(BaseModel):
-    avatar_base64: str
-
-
-class TenantUpdateAvatarResponseModel(BaseModel):
-    tenantname: str
-    tenant_id: int
-    avatar: str
-
 
 class UserUpdateAvatarRequestModel(BaseModel):
-    avatar_base64: str
+    avatar: str
+    username: str
 
 
 class UserUpdateAvatarResponseModel(BaseModel):
@@ -189,21 +195,46 @@ class UserUpdateAvatarResponseModel(BaseModel):
     avatar: str
 
 
+class TenantUpdateAvatarRequestModel(BaseModel):
+    avatar: str
+    tenantname: str
+
+
+class TenantUpdateAvatarResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    avatar: str
+
+
+class TenantChangePasswordRequestModel(BaseModel):
+    password: str
+    new_password: str
+
+
+class TenantChangePasswordResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    password_hash: str
+
 class PipelineDetailModel(BaseModel):
     id: int
     name: str
-    tenant_id: int
+    principal_id: int
+    principal_type: str
     content: str
     description: str | None
     avatar: str | None
+    params: Optional[Dict[str, Any]] = None
 
     @classmethod
     def from_pipeline(cls, pipeline: Pipeline) -> "PipelineDetailModel":
         return cls(
             id=pipeline.id,
             name=pipeline.name,
-            tenant_id=pipeline.tenant_id,
+            principal_id=pipeline.principal_id,       
+            principal_type=pipeline.principal_type,   
             content=pipeline.content,
             description=pipeline.description,
             avatar=pipeline.avatar,
+            params=json.loads(pipeline.params) if pipeline.params else None, 
         )

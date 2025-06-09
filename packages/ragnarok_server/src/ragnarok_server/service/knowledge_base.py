@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 from ragnarok_server.rdb.models import KnowledgeBase
 from ragnarok_server.rdb.repositories.knowledge_base import KnowledgeBaseRepository
@@ -75,6 +75,16 @@ class KnowledgeBaseService:
                 })
 
         return kbs
+
+    async def modify_knowledge_base(
+        self,
+        kb_id: int,
+        title: Optional[str],
+        description: Optional[str],
+        embedding_model_name: Optional[str],
+        split_type: Optional[str],
+    ) -> bool:
+        return await self.kb_repo.modify_knowledge_base(kb_id, title, description, embedding_model_name, split_type)
 
 
 kb_service = KnowledgeBaseService()

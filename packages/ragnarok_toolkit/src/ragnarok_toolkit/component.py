@@ -20,6 +20,7 @@ class ComponentIOType(StrEnum):
 
     STRING = "STRING"
     STRING_LIST = "STRING_LIST"
+    STRING_LIST_LIST = "STRING_LIST_LIST"
     INT = "INT"
     FLOAT = "FLOAT"
     FLOAT_LIST = "FLOAT_LIST"
@@ -50,7 +51,7 @@ TYPE_MAPPING = {
     ComponentIOType.VEC_POINT_LIST: List[QdrantPoint],
     ComponentIOType.SEARCH_PAYLOAD_DICT: SearchPayloadDict,
     ComponentIOType.SEARCH_PAYLOAD_DICT_LIST: List[SearchPayloadDict],
-    ComponentIOType.DICT: dict
+    ComponentIOType.DICT: dict,
 }
 
 
