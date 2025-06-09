@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict
 
 from aiobotocore.session import get_session
@@ -12,6 +13,8 @@ class MinioClient:
 
     @classmethod
     async def _create_client(cls):
+        os.environ.pop("http_proxy", None)
+        os.environ.pop("https_proxy", None)
         return cls.session.create_client(
             "s3",
             endpoint_url=config.ODB_ENDPOINT,
