@@ -41,6 +41,9 @@ class PipelineRemoveRequest(BaseModel):
     pipeline_id: int
 
 
+class PipelineResetRequest(BaseModel):
+    pipeline_id: int
+
 class PipelineSaveRequest(BaseModel):
     pipeline_id: int
     name: Optional[str] = None
@@ -48,6 +51,8 @@ class PipelineSaveRequest(BaseModel):
     description: Optional[str] = None
     avatar: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
+    components: Optional[str] = None
+    path: Optional[str] = None
 
 class PipelineBriefResponse(BaseModel):
     id: int
@@ -55,7 +60,9 @@ class PipelineBriefResponse(BaseModel):
     description: Optional[str] = None
     avatar: Optional[str] = None
     content: str
-    params: Optional[Dict[str, Any]] = None         
+    params: Optional[Dict[str, Any]] = None   
+    components: Optional[str] = None
+    path: Optional[str] = None      
 
     @field_validator("params", mode="before")
     @classmethod
@@ -165,6 +172,8 @@ async def save_pipeline(
         description=request.description,
         avatar=request.avatar,
         params=request.params,
+        components=request.components,
+        path=request.path,   
     )
     if not ok:
         return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
@@ -196,3 +205,20 @@ async def get_pipeline(
     pipeline = await _check_owner(pipeline_id, token)
     data = PipelineDetailModel.from_pipeline(pipeline)
     return ResponseCode.OK.to_response(data=data)
+
+
+@router.post("/reset")
+async def reset_pipeline(
+    request: PipelineResetRequest,
+    token: TokenData = Depends(decode_access_token),
+) -> Response:
+    await _check_owner(request.pipeline_id, token)
+
+    ok = await pipeline_service.update_pipeline(
+        pipeline_id=request.pipeline_id,
+        components="",  
+        path="",       
+    )
+    if not ok:
+        return ResponseCode.NO_SUCH_RESOURCE.to_response(detail="Pipeline not found")
+    return ResponseCode.OK.to_response()
