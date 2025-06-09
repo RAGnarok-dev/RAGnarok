@@ -138,3 +138,10 @@ class UserRepository:
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one_or_none()
+
+    async def get_user_email_by_id(self, user_id: int) -> EmailStr:
+        async with self._session_factory() as session:
+            stmt = select(User.email).where(User.id == user_id)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

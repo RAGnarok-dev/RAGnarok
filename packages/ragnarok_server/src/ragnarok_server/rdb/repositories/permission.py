@@ -67,3 +67,11 @@ class PermissionRepository:
             rows = result.all()
             return {kb_id: perm for kb_id, perm in rows}
 
+    async def get_permission_list(self, knowledge_base_id: int) -> list[Permission]:
+        async with get_async_session() as session:
+            stmt = select(Permission).where(Permission.knowledge_base_id == knowledge_base_id)
+            result = await session.execute(stmt)
+            permissions = result.scalars().all()
+            return permissions
+
+

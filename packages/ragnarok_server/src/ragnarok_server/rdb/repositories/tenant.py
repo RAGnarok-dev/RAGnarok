@@ -169,3 +169,10 @@ class TenantRepository:
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one_or_none()
+
+    async def get_tenant_email_by_id(self, tenant_id: int) -> EmailStr:
+        async with self._session_factory() as session:
+            stmt = select(Tenant.email).where(Tenant.id == tenant_id)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

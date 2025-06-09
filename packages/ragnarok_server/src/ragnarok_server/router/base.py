@@ -216,6 +216,21 @@ class TenantChangePasswordResponseModel(BaseModel):
     tenant_id: int
     password_hash: str
 
+
+class KbGetPermissionListRequestModel(BaseModel):
+    knowledge_base_id: int
+
+
+class PermissionListResponseModel(BaseModel):
+    username: str
+    email: EmailStr
+    permission_type: str
+
+
+class KbGetPermissionListResponseModel(BaseModel):
+    permission_lists: list[PermissionListResponseModel]
+
+
 class PipelineDetailModel(BaseModel):
     id: int
     name: str

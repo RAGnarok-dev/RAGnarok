@@ -117,6 +117,9 @@ class TenantService:
 
         return await self.repo.change_password(tenant.id, new_password)
 
+    async def get_tenant_email_by_id(self, tenant_id: int) -> EmailStr:
+        return await self.repo.get_tenant_email_by_id(tenant_id)
+
 
 tenant_service = TenantService()
 
