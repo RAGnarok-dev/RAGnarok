@@ -34,7 +34,7 @@ class PipelineExecuteRequest(BaseModel):
 
 class PipelineCompletionRequest(BaseModel):
     pipeline_id: int
-    message_id: int
+    message_id: str
     params: Dict[str, Any] = {}
 
 class PipelineTestRequest(BaseModel):
