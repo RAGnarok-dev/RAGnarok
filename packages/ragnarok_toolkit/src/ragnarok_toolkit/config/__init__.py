@@ -54,3 +54,4 @@ HF_API_KEY = os.environ.get("HF_API_KEY", "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
 
 # ———— SILICONFLOW API KEY ───────────────────────────────────────────────────
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "sf_1234567890")
+
