@@ -1,6 +1,7 @@
+import base64
 from typing import Optional
-
-from fastapi import Depends, Body
+import os
+from fastapi import Depends, Body, Path
 from pydantic import BaseModel
 from ragnarok_core.components.official_components.text_split_component import SplitType
 from ragnarok_server.auth import TokenData, decode_access_token
@@ -20,6 +21,8 @@ from ragnarok_server.router.base import (
     KbGetPermissionListResponseModel,
     PermissionListResponseModel
 )
+from ragnarok_server.rdb.models import KnowledgeBase
+
 
 router = CustomAPIRouter(prefix="/knowledge_base", tags=["Knowledge Base"])
 
@@ -166,13 +169,20 @@ class KnowledgeBaseModifyRequest(BaseModel):
     description: Optional[str] = None
     embedding_model_name: Optional[str] = None
     split_type: Optional[str] = None
+    avatar: str
+
+
+class KnowledgeBaseModifyResponse(BaseModel):
+    title: str
+    avatar: str
+    description: str
 
 
 @router.patch("/modify")
 @require_permission("admin")
 async def modify_knowledge_base(
-    request: KnowledgeBaseModifyRequest, token: TokenData = Depends(decode_access_token)
-) -> Response:
+    request: KnowledgeBaseModifyRequest = Body(...), token: TokenData = Depends(decode_access_token)
+) -> Response[KnowledgeBaseModifyResponse]:
 
     # check validate
     kb = await kb_service.get_knowledge_base_by_id(request.knowledge_base_id)
@@ -192,13 +202,31 @@ async def modify_knowledge_base(
             SplitType(request.split_type)
         except ValueError:
             raise HTTPException(status_code=400, content="Invalid split type")
+    if request.avatar is not None:
+        header, encoded = request.avatar.split(',', 1)
+        file_data = base64.b64decode(encoded)
+        filename = f"{request.knowledge_base_id}.png"
+        save_dir = "static/kb_avatars"
+
+        os.makedirs(save_dir, exist_ok=True)
+        filepath = os.path.join(save_dir, filename)
+
+        with open(filepath, "wb") as f:
+            f.write(file_data)
+
+        await kb_service.update_avatar(request.knowledge_base_id, request.avatar)
 
     # TODO modify embedding model and split type
-
     await kb_service.modify_knowledge_base(
         request.knowledge_base_id, request.title, request.description, request.embedding_model_name, request.split_type
     )
-    return ResponseCode.OK.to_response()
+    return ResponseCode.OK.to_response(
+        data=KnowledgeBaseModifyResponse(
+            title=request.title,
+            avatar=request.avatar,
+            description=request.description
+        )
+    )
 
 
 @router.get("/list")
@@ -240,15 +268,15 @@ async def get_permission(knowledge_base_id: int, token: TokenData = Depends(deco
 
 
 @router.get(
-    "/get_permission_list",
+    "/knowledge_base/{knowledgeBaseId}/get_permission_list",
     summary="Get permission list by kb_id",
     response_model=Response[KbGetPermissionListResponseModel]
 )
 async def get_permission_list(
-    data: KbGetPermissionListRequestModel = Body(...),
+    knowledge_base_id: str = Path(..., description="Knowledge Base ID"),
     service=Depends(lambda: permission_service),
 ) -> Response[KbGetPermissionListResponseModel]:
-    result: list[Permission] = await service.get_permission_list(data.knowledge_base_id)
+    result: list[Permission] = await service.get_permission_list(knowledge_base_id)
     permission_lists = []
     for permission in result:
         if permission.principal_type == 'user':

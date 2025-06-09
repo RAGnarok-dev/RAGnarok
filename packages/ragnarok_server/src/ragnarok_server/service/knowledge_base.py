@@ -88,5 +88,8 @@ class KnowledgeBaseService:
     ) -> bool:
         return await self.kb_repo.modify_knowledge_base(kb_id, title, description, embedding_model_name, split_type)
 
+    async def update_avatar(self, knowledge_base_id: int, new_avatar: str) -> KnowledgeBase:
+        return await self.kb_repo.update_avatar(knowledge_base_id, new_avatar)
+
 
 kb_service = KnowledgeBaseService()
