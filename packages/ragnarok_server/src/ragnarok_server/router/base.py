@@ -157,8 +157,8 @@ class UserChangePasswordResponseModel(BaseModel):
 
 
 class TenantGetUsersResponseModel(BaseModel):
-    tenantname: str
-    tenant_id: int
+    tenantname: Optional[str]
+    tenant_id: Optional[int]
     users: list[UserInfoResponseModel]
 
 
