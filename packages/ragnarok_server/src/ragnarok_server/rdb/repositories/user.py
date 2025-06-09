@@ -145,3 +145,10 @@ class UserRepository:
             result = await session.execute(stmt)
             await session.commit()
             return result.scalar_one_or_none()
+
+    async def get_tenant_id_by_user_id(self, user_id: int) -> Optional[int]:
+        async with self._session_factory() as session:
+            stmt = select(User.tenant_id).where(User.id == user_id)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

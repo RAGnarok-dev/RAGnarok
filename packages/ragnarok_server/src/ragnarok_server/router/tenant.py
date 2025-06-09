@@ -28,6 +28,12 @@ from ragnarok_server.auth import get_current_tenant
 from passlib.context import CryptContext
 from ragnarok_server.service.store import store_service
 from ragnarok_server.service.tenant import tenant_service
+from ragnarok_server.service.user import user_service
+from fastapi.security import OAuth2PasswordBearer
+from ragnarok_server.auth import decode_access_token
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth.py/token")
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = CustomAPIRouter(prefix="/tenants", tags=["Tenant"])
@@ -172,12 +178,25 @@ async def get_tenant_info(
     response_model=Response[TenantGetUsersResponseModel],
 )
 async def get_all_users_info(
-    current_tenant: Tenant = Depends(get_current_tenant), service=Depends(lambda: tenant_service)
+        token: str = Depends(oauth2_scheme), service=Depends(lambda: tenant_service)
 ) -> Response[TenantGetUsersResponseModel]:
+    token_data = await decode_access_token(token)
+    if token_data.principal_type == 'tenant':
+        current_tenant: Tenant = await service.get_tenant_by_id(token_data.principal_id)
+    else:
+        tenant_id = await user_service.get_tenant_id_by_user_id(token_data.principal_id)
+        if tenant_id is None:
+            return ResponseCode.OK.to_response(
+                data=TenantGetUsersResponseModel(
+                    users=[]
+                )
+            )
+        current_tenant: Tenant = await service.get_tenant_by_id(tenant_id)
+
     users: list[User] = await service.get_all_users_info(current_tenant)
 
-    user_data = [UserInfoResponseModel(id=user.id, username=user.username,
-                                       email=user.email, avatar=user.avatar_url) for user in users]
+    user_data = [UserInfoResponseModel(id=user.id, username=user.username, email=user.email, avatar=user.avatar_url)
+                 for user in users]
 
     return ResponseCode.OK.to_response(
         data=TenantGetUsersResponseModel(tenant_id=current_tenant.id, tenantname=current_tenant.name, users=user_data)
