@@ -36,7 +36,7 @@ class KnowledgeBaseResponse(BaseModel):
     root_file_id: str
     principal_id: int
     principal_type: str
-    avatar: Optional[str]
+    avatar: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -52,7 +52,7 @@ class GetAllKnowledgeBaseResponse(BaseModel):
     principal_id: int
     principal_type: str
     permission: str
-    avatar: Optional[str]
+    avatar: Optional[str] = None
 
 
 class KnowledgeBaseCreateRequest(BaseModel):
@@ -171,13 +171,13 @@ class KnowledgeBaseModifyRequest(BaseModel):
     description: Optional[str] = None
     embedding_model_name: Optional[str] = None
     split_type: Optional[str] = None
-    avatar: str
+    avatar: Optional[str] = None
 
 
 class KnowledgeBaseModifyResponse(BaseModel):
-    title: str
-    avatar: str
-    description: str
+    title: Optional[str]
+    avatar: Optional[str]
+    description: Optional[str]
 
 
 @router.patch("/modify")
