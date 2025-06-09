@@ -11,7 +11,7 @@ from ragnarok_core.pipeline.pipeline_node import PipelineNode
 @dataclass
 class PipelineExecutionInfo:
     node_id: str
-    type: Literal["process_info", "output_info"]
+    type: Literal["process_info", "output_info", "end_info"]
     data: Dict[str, Any]
     timestamp: datetime = None  # auto set by __post_init__
 
@@ -55,14 +55,6 @@ class PipelineEntity:
         for node in self.begin_nodes:
             node.waiting_num = 0
 
-        for node in node_map.values():
-            print(node.node_id, [input_option.get("name") for input_option in node.component.input_options()])
-            print({
-                    node_input_name
-                    for node_id, node_input_name in inject_input_mapping.values()
-                    if node_id == node.node_id
-                })
-
     async def run_async(self, *args, **kwargs) -> AsyncGenerator[PipelineExecutionInfo, None]:
         """execute the pipeline, async version"""
         # 1. inject outer input
@@ -71,22 +63,20 @@ class PipelineEntity:
             # TODO check if actual_input_value is None or not correspond to node expected type
             self.node_map[node_id].input_data[node_input_name] = actual_input_value
 
-        for node in self.node_map.values():
-            print(node.node_id, node.waiting_num)
         # 2. run beginning task
         # TODO if begin_nodes is empty, please raise error
         for node in self.begin_nodes:
-            print("begin node:", node.node_id)
             asyncio.create_task(self.run_node_async(node))
 
         # 3. collect result
-        print("cur remaining num: ", self.remaining_num)
         while self.remaining_num > 0:
             execution_info = await self.result_queue.get()
             if execution_info.type == "process_info":
                 self.remaining_num -= 1
 
             yield execution_info
+
+        yield PipelineExecutionInfo("", "end_info", {})
 
     async def run_node_async(self, node: PipelineNode) -> None:
         """run a node execution function, async version"""
@@ -109,17 +99,14 @@ class PipelineEntity:
 
         # trigger forward nodes
         tasks = []
-        print(node.node_id, node.forward_node_info)
         for connection in node.forward_node_info:
             current_output = node_outputs[connection.from_node_output_name]
             trigger_node = self.node_map[connection.to_node_id]
             if trigger_node is None:
-                print("node",node.node_id,"reaches end")
                 continue
 
             trigger_node.input_data[connection.to_node_input_name] = current_output
             trigger_node.waiting_num -= 1
-            print("node", trigger_node.node_id, "waiting_num becomes", trigger_node.waiting_num)
             if trigger_node.waiting_num == 0:
                 task = asyncio.create_task(self.run_node_async(trigger_node))
                 tasks.append(task)
