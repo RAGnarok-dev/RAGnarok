@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from ragnarok_server.rdb.models import KnowledgeBase
 from ragnarok_server.rdb.repositories.knowledge_base import KnowledgeBaseRepository
+from ragnarok_server.rdb.repositories.permission import PermissionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -51,13 +52,29 @@ class KnowledgeBaseService:
     async def retitle_knowledge_base(self, id: int, new_title: str) -> bool:
         return await self.kb_repo.retitle_knowledge_base(id, new_title)
 
-    async def get_all_knowledge_bases(self) -> List[KnowledgeBase]:
+    async def get_all_knowledge_bases(self, principal_id: int, principal_type: str) -> List[dict]:
         """
-        获取所有知识库
+        获取当前用户或者租户的所有知识库
         Returns:
             List[KnowledgeBase]: 知识库列表
         """
-        return await self.kb_repo.get_all_knowledge_bases()
+        result = await PermissionRepository.get_all_knowledge_bases_by_id(principal_id, principal_type)
+
+        kbs=[]
+        for kb_id, permission in result.items():
+            kb = await self.kb_repo.get_knowledge_base_by_id(kb_id)
+            if kb:
+                kbs.append({
+                    "id": kb.id,
+                    "title": kb.title,
+                    "description": kb.description,
+                    "embedding_model_name": kb.embedding_model_name,
+                    "split_type": kb.split_type,
+                    "root_file_id": kb.root_file_id,
+                    "permission": permission
+                })
+
+        return kbs
 
     async def modify_knowledge_base(
         self,

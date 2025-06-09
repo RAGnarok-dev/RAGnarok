@@ -23,7 +23,9 @@ class KnowledgeBaseRepository:
     async def create_knowledge_base(cls, knowledge_base: KnowledgeBase) -> KnowledgeBase:
         async with get_async_session() as session:
             session.add(knowledge_base)
-        return knowledge_base
+            await session.commit()
+            await session.refresh(knowledge_base)
+            return knowledge_base
 
     @classmethod
     async def fix_kb_root_file_id(cls, kb_id: int, root_file_id: str) -> bool:
@@ -63,7 +65,7 @@ class KnowledgeBaseRepository:
         return result.rowcount > 0
 
     @classmethod
-    async def get_all_knowledge_bases(cls) -> List[KnowledgeBase]:
+    async def get_all_knowledge_bases(cls, id: int, type: str) -> List[KnowledgeBase]:
         """
         获取所有知识库
         Returns:
