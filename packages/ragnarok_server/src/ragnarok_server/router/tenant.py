@@ -184,7 +184,13 @@ async def get_all_users_info(
     if token_data.principal_type == 'tenant':
         current_tenant: Tenant = await service.get_tenant_by_id(token_data.principal_id)
     else:
-        tenant_id: int = await user_service.get_tenant_by_user_id(token_data.principal_id)
+        tenant_id = await user_service.get_tenant_id_by_user_id(token_data.principal_id)
+        if tenant_id is None:
+            return ResponseCode.OK.to_response(
+                data=TenantGetUsersResponseModel(
+                    users=[]
+                )
+            )
         current_tenant: Tenant = await service.get_tenant_by_id(tenant_id)
 
     users: list[User] = await service.get_all_users_info(current_tenant)
