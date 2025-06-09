@@ -188,6 +188,8 @@ async def get_all_users_info(
         if tenant_id is None:
             return ResponseCode.OK.to_response(
                 data=TenantGetUsersResponseModel(
+                    tenant_id=1,
+                    tenantname="1",
                     users=[]
                 )
             )
