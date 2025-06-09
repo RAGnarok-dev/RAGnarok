@@ -141,7 +141,7 @@ class TenantRemoveUserResponseModel(BaseModel):
 class TenantInfoResponseModel(BaseModel):
     tenantname: str
     id: int
-    avatar: str
+    avatar: Optional[str] = None
     email: EmailStr
 
 
