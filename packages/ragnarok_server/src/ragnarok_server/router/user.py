@@ -3,6 +3,8 @@ from fastapi import Response as FastAPIResponse
 from ragnarok_server.service.user import user_service
 from ragnarok_server.rdb.models import User
 from ragnarok_server.rdb.engine import get_async_session
+import os
+import base64
 from ragnarok_server.router.base import (
     CustomAPIRouter,
     UserRegisterRequestModel,
@@ -11,11 +13,16 @@ from ragnarok_server.router.base import (
     UserLoginResponseModel,
     UserInfoResponseModel,
     UserJoinTenantRequestModel,
-    UserJoinTenantResponseModel
+    UserJoinTenantResponseModel,
+    UserUpdateAvatarRequestModel,
+    UserUpdateAvatarResponseModel,
+    UserChangePasswordRequestModel,
+    UserChangePasswordResponseModel
 )
 from ragnarok_server.common import Response, ResponseCode
 from ragnarok_server.auth import get_current_user
-
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 router = CustomAPIRouter(prefix="/users", tags=["User"])
 
 
@@ -98,7 +105,8 @@ async def get_user_info(
         data=UserInfoResponseModel(
             username=result["username"],
             id=result["id"],
-            avatar="avatar"
+            avatar=result["avatar"],
+            email=result["email"]
         )
     )
 
@@ -127,9 +135,79 @@ async def join_tenant(
             tenant_id=result["tenant_id"]
         )
     )
+@router.post(
+    "/update_avatar",
+    summary="Update user avatar",
+    response_model=Response[UserUpdateAvatarResponseModel],
+)
+async def update_tenant_avatar(
+    data: UserUpdateAvatarRequestModel = Body(...),
+    current_user: User = Depends(get_current_user),
+    service=Depends(lambda: user_service)
+) -> Response[UserUpdateAvatarResponseModel]:
+    header, encoded = data.avatar.split(',', 1)
+    file_data = base64.b64decode(encoded)
+    print(file_data)
 
+    filename = f"{current_user.id}-user.png"
+    save_dir = "static/avatars"
 
+    os.makedirs(save_dir, exist_ok=True)
+    filepath = os.path.join(save_dir, filename)
 
+    with open(filepath, "wb") as f:
+        f.write(file_data)
 
+    new_avatar_url = f"/static/avatars/{filename}"
+
+    new_user: User = await service.update_user_avatar(current_user, data.avatar, data.username)
+
+    if new_user.username == data.username:
+        return ResponseCode.OK.to_response(
+            data=UserUpdateAvatarResponseModel(
+                username=new_user.username,
+                id=new_user.id,
+                avatar=new_user.avatar_url
+            )
+        )
+    else :
+        return ResponseCode.INTERNAL_SERVER_ERROR.to_response(
+            data=UserUpdateAvatarResponseModel(
+                username=new_user.username,
+                id=new_user.id,
+                avatar=new_user.avatar_url
+            )
+        )
+@router.get(
+    "/logout",
+    summary="User logout (no server state)"
+)
+async def logout():
+    return {
+        "code": 0,
+        "message": "Logout successful"
+    }
+
+@router.post(
+    "/change_password",
+    summary="User change the password",
+    response_model=Response[UserChangePasswordResponseModel]
+)
+async def change_password(
+        data: UserChangePasswordRequestModel = Body(...),
+        current_user: User = Depends(get_current_user),
+        service=Depends(lambda: user_service)
+) -> Response[UserChangePasswordResponseModel]:
+    new_hashed_password = pwd_context.hash(data.new_password)
+
+    new_user: User = await service.change_password(current_user, data.password, new_hashed_password)
+
+    return ResponseCode.OK.to_response(
+        data=UserChangePasswordResponseModel(
+            username=new_user.username,
+            id=new_user.id,
+            password_hash=new_user.password_hash
+        )
+    )
 
 

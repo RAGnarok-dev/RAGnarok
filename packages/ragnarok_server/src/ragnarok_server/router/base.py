@@ -68,6 +68,7 @@ class UserInfoResponseModel(BaseModel):
     username: str
     id: int
     avatar: str
+    email: EmailStr
 
 
 class UserJoinTenantRequestModel(BaseModel):
@@ -133,6 +134,18 @@ class TenantInfoResponseModel(BaseModel):
     tenantname: str
     id: int
     avatar: str
+    email: EmailStr
+
+
+class UserChangePasswordRequestModel(BaseModel):
+    password: str
+    new_password: str
+
+
+class UserChangePasswordResponseModel(BaseModel):
+    username: str
+    id: int
+    password_hash: str
 
 
 class TenantGetUsersResponseModel(BaseModel):
@@ -140,6 +153,38 @@ class TenantGetUsersResponseModel(BaseModel):
     tenant_id: int
     users: list[UserInfoResponseModel]
 
+
+class UserUpdateAvatarRequestModel(BaseModel):
+    avatar: str
+    username: str
+
+
+class UserUpdateAvatarResponseModel(BaseModel):
+    username: str
+    id: int
+    avatar: str
+
+class TenantUpdateAvatarRequestModel(BaseModel):
+    avatar: str
+    tenantname: str
+
+
+
+class TenantUpdateAvatarResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    avatar: str
+
+
+class TenantChangePasswordRequestModel(BaseModel):
+    password: str
+    new_password: str
+
+
+class TenantChangePasswordResponseModel(BaseModel):
+    tenantname: str
+    tenant_id: int
+    password_hash: str
 
 class PipelineDetailModel(BaseModel):
     id: int

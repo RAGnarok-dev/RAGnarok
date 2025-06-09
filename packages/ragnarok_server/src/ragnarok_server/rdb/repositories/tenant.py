@@ -5,7 +5,7 @@ from pydantic import EmailStr
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import Tenant, User
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -143,3 +143,26 @@ class TenantRepository:
             result = await session.execute(stmt)
             users = result.scalars().all()
             return list(users)
+
+    async def update_tenant_avatar(self, tenant_id: int, new_avatar_url: str, new_name: str) -> Tenant:
+        async with self._session_factory() as session:  # type: AsyncSession
+            stmt_check = select(Tenant).where(Tenant.name == new_name, Tenant.id != tenant_id)
+            result = await session.execute(stmt_check)
+            existing_tenant = result.scalar_one_or_none()
+            if not existing_tenant:
+                stmt = update(Tenant).where(Tenant.id == tenant_id).values(avatar_url=new_avatar_url, name=new_name).returning(Tenant)
+                result = await session.execute(stmt)
+                await session.commit()
+                return result.scalar_one_or_none()
+            else:
+                stmt = select(Tenant).where(Tenant.id == tenant_id)
+                result = await session.execute(stmt)
+                await session.commit()
+                return result.scalar_one_or_none()
+
+    async def change_password(self, tenant_id: int, new_password: str) -> Tenant:
+        async with self._session_factory() as session:
+            stmt = update(Tenant).where(Tenant.id == tenant_id).values(password_hash=new_password).returning(Tenant)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

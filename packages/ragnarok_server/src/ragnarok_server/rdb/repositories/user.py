@@ -4,7 +4,8 @@ from pydantic import EmailStr
 from passlib.context import CryptContext
 from ragnarok_server.rdb.engine import get_async_session
 from ragnarok_server.rdb.models import User
-from sqlalchemy import select
+from sqlalchemy import select, update
+from ragnarok_server.exceptions import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -113,4 +114,25 @@ class UserRepository:
             logger.info(f"Updated tenant_id for user {user.username} to {tenant_id}")
             return user
 
+    async def update_user_avatar(self, user_id: int, new_avatar_url: str, new_username: str) -> User:
+        async with self._session_factory() as session:
+            stmt_check = select(User).where(User.username == new_username, User.id != user_id)
+            result = await session.execute(stmt_check)
+            existing_user = result.scalar_one_or_none()
+            if not existing_user:
+                stmt = update(User).where(User.id == user_id).values(avatar_url=new_avatar_url, username=new_username).returning(User)
+                result = await session.execute(stmt)
+                await session.commit()
+                return result.scalar_one_or_none()
+            else:
+                stmt = select(User).where(User.id == user_id)
+                result = await session.execute(stmt)
+                await session.commit()
+                return result.scalar_one_or_none()
 
+    async def change_password(self, user_id: int, new_password: str) -> User:
+        async with self._session_factory() as session:
+            stmt = update(User).where(User.id == user_id).values(password_hash=new_password).returning(User)
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.scalar_one_or_none()

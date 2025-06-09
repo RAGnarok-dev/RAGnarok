@@ -80,7 +80,8 @@ class TenantService:
         return {
             "tenantname": tenant.name,
             "id": tenant.id,
-            "avatar": "avatar"
+            "avatar": tenant.avatar_url,
+            "email": tenant.email
         }
     async def invite_user_to_tenant(self, tenant_id: int, user_email: str) -> Optional[User]:
         """
@@ -101,6 +102,21 @@ class TenantService:
             raise InvalidArgsError("Tenant does not exist, please log in")
 
         return await self.repo.get_all_users_info(tenant.id)
+
+    async def update_tenant_avatar(self, tenant: Tenant, new_avatar_url: str, new_name: str) -> Tenant:
+        if not tenant:
+            raise InvalidArgsError("Tenant does not exist, please log in")
+
+        return await self.repo.update_tenant_avatar(tenant.id, new_avatar_url, new_name)
+
+    async def change_password(self, tenant: Tenant, password: str, new_password: str) -> Tenant:
+        if not tenant:
+            raise NoResultFoundError("Tenant does not exist")
+
+        # if password != user.password_hash:
+        #     raise InvalidArgsError("The old password is incorrect")
+
+        return await self.repo.change_password(tenant.id, new_password)
 
 
 tenant_service = TenantService()
