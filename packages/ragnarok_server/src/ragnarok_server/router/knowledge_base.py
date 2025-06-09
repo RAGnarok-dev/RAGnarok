@@ -1,19 +1,25 @@
 from typing import Optional
 
-from fastapi import Depends
+from fastapi import Depends, Body
 from pydantic import BaseModel
 from ragnarok_core.components.official_components.text_split_component import SplitType
 from ragnarok_server.auth import TokenData, decode_access_token
 from ragnarok_server.common import ListResponseData, Response, ResponseCode
 from ragnarok_server.exceptions import HTTPException
-from ragnarok_server.rdb.models import Permission
+from ragnarok_server.rdb.models import Permission, Tenant, User
 from ragnarok_server.router.base import CustomAPIRouter
 from ragnarok_server.router.file import FileResponse
 from ragnarok_server.router.permission import require_permission
 from ragnarok_server.service.file import file_service
 from ragnarok_server.service.knowledge_base import kb_service
 from ragnarok_server.service.permission import permission_service
+from ragnarok_server.service.user import user_service
 from ragnarok_toolkit.model.embedding_model import EmbeddingModelEnum
+from ragnarok_server.router.base import (
+    KbGetPermissionListRequestModel,
+    KbGetPermissionListResponseModel,
+    PermissionListResponseModel
+)
 
 router = CustomAPIRouter(prefix="/knowledge_base", tags=["Knowledge Base"])
 
@@ -231,6 +237,33 @@ async def get_permission(knowledge_base_id: int, token: TokenData = Depends(deco
     if permission is None:
         return ResponseCode.OK.to_response(data="none")
     return ResponseCode.OK.to_response(data=permission.permission_type)
+
+
+@router.get(
+    "/get_permission_list",
+    summary="Get permission list by kb_id",
+    response_model=Response[KbGetPermissionListResponseModel]
+)
+async def get_permission_list(
+    data: KbGetPermissionListRequestModel = Body(...),
+    service=Depends(lambda: permission_service),
+) -> Response[KbGetPermissionListResponseModel]:
+    result: list[Permission] = await service.get_permission_list(data.knowledge_base_id)
+    permission_lists = []
+    for permission in result:
+        if permission.principal_type == 'user':
+            user: User = await user_service.get_user_by_id(permission.principal_id)
+            permission_list = PermissionListResponseModel(
+                username=user.username,
+                email=user.email,
+                permission_type=permission.permission_type
+            )
+            permission_lists.append(permission_list)
+    return ResponseCode.OK.to_response(
+        data=KbGetPermissionListResponseModel(
+            permission_lists=permission_lists
+        )
+    )
 
 
 # embedding model and split type

@@ -177,7 +177,7 @@ async def get_all_users_info(
     users: list[User] = await service.get_all_users_info(current_tenant)
 
     user_data = [UserInfoResponseModel(id=user.id, username=user.username,
-                                       email=user.email, avatar="avatar") for user in users]
+                                       email=user.email, avatar=user.avatar_url) for user in users]
 
     return ResponseCode.OK.to_response(
         data=TenantGetUsersResponseModel(tenant_id=current_tenant.id, tenantname=current_tenant.name, users=user_data)

@@ -143,6 +143,9 @@ class UserService:
 
         return await self.repo.change_password(user.id, new_password)
 
+    async def get_user_by_id(self, user_id: int) -> User:
+        return await self.repo.get_user_by_id(user_id)
+
 
 # Initialize the service instance
 user_service = UserService()

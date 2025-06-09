@@ -41,5 +41,8 @@ class PermissionService:
             knowledge_base_id, principal_id, principal_type, permission_type
         )
 
+    async def get_permission_list(self, knowledge_base_id: int) -> list[Permission]:
+        return await self.permission_repo.get_permission_list(knowledge_base_id)
+
 
 permission_service = PermissionService()
