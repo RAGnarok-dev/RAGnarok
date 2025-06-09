@@ -3,9 +3,7 @@ import csv
 import functools
 import json
 import logging
-import os
 import re
-import tempfile
 from enum import Enum
 from io import BytesIO
 from typing import Dict, List, Tuple
@@ -13,7 +11,6 @@ from typing import Dict, List, Tuple
 import docx2txt
 import numpy as np
 import pdfplumber
-import win32com.client
 import xlrd
 from bs4 import BeautifulSoup
 from langchain_text_splitters import (
@@ -107,27 +104,6 @@ class TextSplitComponent(RagnarokComponent):
             text = docx2txt.process(BytesIO(file_byte))
         elif file_type == "application/json":  # json
             text = json.dumps(json.loads(file_byte), ensure_ascii=False)
-        elif file_type == "application/msword":  # doc
-            try:
-                # 将二进制数据写入临时文件
-                with tempfile.NamedTemporaryFile(suffix=".doc", delete=False) as temp_file:
-                    temp_file.write(file_byte)
-                    temp_file_path = temp_file.name
-
-                # 使用 win32com 提取文本
-                word = win32com.client.Dispatch("Word.Application")
-                word.Visible = False
-                doc = word.Documents.Open(temp_file_path)
-                text = doc.Content.Text
-                doc.Close()
-                word.Quit()
-
-                # 删除临时文件
-                os.unlink(temp_file_path)
-            except Exception as e:
-                logger.error(f"Error processing doc file: {str(e)}")
-                text = ""
-                raise ValueError(f"Error processing doc file: {str(e)}")
         elif file_type == "application/vnd.ms-excel":  # xls
             workbook = xlrd.open_workbook(file_contents=file_byte)
             sheet = workbook.sheet_by_index(0)

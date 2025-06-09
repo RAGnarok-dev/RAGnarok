@@ -9,6 +9,9 @@ from ragnarok_toolkit.component import (
 
 
 class StrComponent(RagnarokComponent):
+    DESCRIPTION = "pass str"
+    ENABLE_HINT_CHECK = True
+
     @classmethod
     def input_options(cls) -> Tuple[ComponentInputTypeOption, ...]:
         return (

@@ -22,7 +22,6 @@ dependencies = [
     "python-pptx>=1.0.2",
     "openpyxl>=3.1.5",
     "python-docx>=1.1.2",
-    "pywin32>=310",
 ]
 
 [tool.uv.workspace]
