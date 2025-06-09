@@ -142,7 +142,7 @@ async def update_tenant_avatar(
     current_user: User = Depends(get_current_user),
     service=Depends(lambda: user_service)
 ) -> Response[UserUpdateAvatarResponseModel]:
-    header, encoded = data.avatar_base64.split(',', 1)
+    header, encoded = data.avatar.split(',', 1)
     file_data = base64.b64decode(encoded)
 
     filename = f"{current_user.id}-user.png"
@@ -157,22 +157,13 @@ async def update_tenant_avatar(
 
     new_user: User = await service.update_user_avatar(current_user, data.avatar, data.username)
 
-    if new_user.username == data.username:
-        return ResponseCode.OK.to_response(
-            data=UserUpdateAvatarResponseModel(
-                username=new_user.username,
-                id=new_user.id,
-                avatar=new_user.avatar_url
-            )
+    return ResponseCode.OK.to_response(
+        data=UserUpdateAvatarResponseModel(
+            username=new_user.username,
+            id=new_user.id,
+            avatar=new_user.avatar_url
         )
-    else:
-        return ResponseCode.INTERNAL_SERVER_ERROR.to_response(
-            data=UserUpdateAvatarResponseModel(
-                username=new_user.username,
-                id=new_user.id,
-                avatar=new_user.avatar_url
-            )
-        )
+    )
 
 
 @router.get(

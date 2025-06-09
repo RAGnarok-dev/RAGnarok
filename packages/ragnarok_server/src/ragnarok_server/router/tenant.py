@@ -171,6 +171,23 @@ async def get_tenant_info(
         )
     )
 
+@router.get(
+    "/no_tenant_info",
+    summary="Get an existing tenant info",
+    response_model=Response[TenantInfoResponseModel],
+)
+async def get_tenant_info() -> Response[TenantInfoResponseModel]:
+
+    return ResponseCode.OK.to_response(
+        data=TenantInfoResponseModel(
+            tenantname="default",
+            id=0,
+            avatar="default",
+            email="default"
+        )
+    )
+
+
 
 @router.get(
     "/get_users",
@@ -257,3 +274,4 @@ async def change_password(
             password_hash=new_tenant.password_hash
         )
     )
+
