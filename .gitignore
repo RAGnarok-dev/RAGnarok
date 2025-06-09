@@ -178,3 +178,4 @@ uv.lock
 *.txt
 
 src/ragnarok/static/avatars
+src/ragnarok/static/kb_avatars
