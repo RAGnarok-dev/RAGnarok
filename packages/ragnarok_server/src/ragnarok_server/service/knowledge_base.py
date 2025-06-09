@@ -71,7 +71,9 @@ class KnowledgeBaseService:
                     "embedding_model_name": kb.embedding_model_name,
                     "split_type": kb.split_type,
                     "root_file_id": kb.root_file_id,
-                    "permission": permission
+                    "permission": permission,
+                    "principal_id": kb.principal_id,
+                    "principal_type": kb.principal_type
                 })
 
         return kbs
