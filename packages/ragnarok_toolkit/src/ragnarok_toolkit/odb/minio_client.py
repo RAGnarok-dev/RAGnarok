@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from aiobotocore.session import get_session
 from ragnarok_toolkit import config
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -70,5 +71,12 @@ class MinioClient:
     @classmethod
     async def check_file_exists(cls, bucket_name: str, key: str) -> bool:
         async with await cls._create_client() as minio_client:
-            response = await minio_client.head_object(Bucket=bucket_name, Key=key)
-            return response is not None
+            # response = await minio_client.head_object(Bucket=bucket_name, Key=key)
+            # return response is not None
+            try:
+                await minio_client.head_object(Bucket=bucket_name, Key=key)
+                return True
+            except ClientError as e:
+                if e.response["Error"]["Code"] == "404":
+                    return False
+                raise  # 其他错误继续抛出

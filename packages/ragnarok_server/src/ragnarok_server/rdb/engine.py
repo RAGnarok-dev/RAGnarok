@@ -21,7 +21,7 @@ async_session = async_sessionmaker(async_engine, expire_on_commit=False)
 async def init_rdb():
     sql_engine = create_async_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
     async with sql_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        #await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     # init qdrant
