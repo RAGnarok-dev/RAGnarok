@@ -25,7 +25,7 @@ RDB_HOST = os.environ.get("RDB_HOST", "localhost")
 RDB_PORT = os.environ.get("RDB_PORT", "5432")
 RDB_DATABASE_NAME = "ragnarok"
 RDB_USERNAME = os.environ.get("RDB_USERNAME", "postgres")
-RDB_PASSWORD = os.environ.get("RDB_PASSWORD", "lin061593")
+RDB_PASSWORD = os.environ.get("RDB_PASSWORD", "123456")
 
 # ─── Permission manager ───────────────────────────────────────────────────────
 PERMISSION_CACHE_SIZE = int(os.environ.get("PERMISSION_CACHE_SIZE", "1000"))
@@ -54,4 +54,3 @@ HF_API_KEY = os.environ.get("HF_API_KEY", "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
 
 # ———— SILICONFLOW API KEY ───────────────────────────────────────────────────
 SILICONFLOW_API_KEY = os.environ.get("SILICONFLOW_API_KEY", "sf_1234567890")
-

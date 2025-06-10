@@ -45,8 +45,8 @@ class BaiduSearchComponent(RagnarokComponent):
 
     @classmethod
     async def execute(cls, keyword: str, top_n: int) -> Dict[str, Any]:
-        keyword = str(keyword)
-        top_n = str(top_n)
+        if isinstance(keyword, list):
+            keyword = keyword[0]
         url = "https://www.baidu.com/s?wd=" + keyword + "&rn=" + str(top_n)
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
