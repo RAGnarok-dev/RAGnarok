@@ -135,11 +135,34 @@ async def execute_pipeline(request: PipelineExecuteRequest) -> StreamingResponse
     )
 
 
+def decode_bytes(data):
+    """递归解码字节数据"""
+    if isinstance(data, bytes):
+        try:
+            return data.decode('utf-8')  # 尝试解码为 UTF-8 字符串
+        except UnicodeDecodeError:
+            return "<invalid utf-8 data>"
+    elif isinstance(data, dict):
+        # 如果是字典，递归解码所有值
+        return {key: decode_bytes(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        # 如果是列表，递归解码所有元素
+        return [decode_bytes(item) for item in data]
+    else:
+        # 如果既不是字节数据，也不是字典或列表，直接返回
+        return data
+
 @router.post("/test")
 async def pipeline_test(request: PipelineTestRequest) -> StreamingResponse:
     async def sse_wrapper(ori_gen: AsyncGenerator[PipelineExecutionInfo, None]) -> AsyncGenerator[str, None]:
         async for pipeline_execution_info in ori_gen:
-            yield "data: " + pipeline_execution_info.to_json() + "\n\n"
+            # 获取 json_data，并处理其中的字节数据
+            json_data = pipeline_execution_info.to_json()
+
+            # 解码 json_data 中的字节数据
+            json_data = decode_bytes(json_data)
+
+            yield f"data: {json_data}\n\n"
 
     # 1. validate pipeline
     if not pipeline_service.validate_pipeline_str(request.pipeline_content):
@@ -150,6 +173,7 @@ async def pipeline_test(request: PipelineTestRequest) -> StreamingResponse:
         sse_wrapper(await pipeline_service.execute_pipeline(request.pipeline_content, request.params)),
         media_type="text/event-stream",
     )
+
 
 @router.delete("/remove")
 async def remove_pipeline(
@@ -236,6 +260,9 @@ async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingRe
             if pipeline_execution_info.type == "output_info":
                 for key, value in pipeline_execution_info.data.items():
                     if key.endswith('_res'):
+                        # 处理字节数据
+                        value = decode_bytes(value)  # 解码字节数据
+                        
                         content = json.dumps(value)
                         updated_info = {
                             "node_id": pipeline_execution_info.node_id,
@@ -249,6 +276,9 @@ async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingRe
                         return  
 
             else:
+                # 处理 pipeline_execution_info.data 字段
+                pipeline_execution_info.data = decode_bytes(pipeline_execution_info.data)  # 解码字节数据
+
                 content = f"node {pipeline_execution_info.node_id} running, output: {pipeline_execution_info.data}"
 
                 updated_info = {
@@ -259,7 +289,6 @@ async def completion_pipeline(request: PipelineCompletionRequest) -> StreamingRe
                     },
                     "timestamp": pipeline_execution_info.timestamp.isoformat()  # 确保时间戳可序列化
                 }
-
 
                 yield "data: " + json.dumps(updated_info) + "\n\n"
 
