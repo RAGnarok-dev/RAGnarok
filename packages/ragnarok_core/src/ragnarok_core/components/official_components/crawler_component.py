@@ -33,7 +33,14 @@ class CrawlerComponent(RagnarokComponent):
             for url in url:
                 if url is not None and url != "":
                     src.append(url)
-        src.append(url)
+        else:
+            if url is not None and url != "":
+                src.append(url)
+        if len(src) == 0:
+            src.append(
+                "http://www.baidu.com/link?url=VvAyOcDxOGtHkj3xo7jyUbltRk0DaiN99mn_Fi"
+                "-baBykqTSNiWYx4YAV7nVXDFYfTJux2nbHJGidl3Z_mNMy6a"
+            )
         res = ""
         for s in src:
             async with AsyncWebCrawler(verbose=True) as crawler:

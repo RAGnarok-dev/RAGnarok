@@ -123,6 +123,8 @@ class PipelineEntity:
         # Build node map
         node_map = {}
         for node_data in data["nodes"]:
+            if node_data["component"] == "Str":
+                node_data["component"] = "StrComponent"
             component = component_manager.get_component_by_name(node_data["component"]).component_class
             if component is None:
                 raise ValueError(f"Component {node_data['component']} not found")
